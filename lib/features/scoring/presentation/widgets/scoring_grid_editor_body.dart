@@ -8,6 +8,7 @@ import '../../domain/entities/grid_config.dart';
 import '../../domain/entities/scoring_grid.dart';
 import '../utils/criterion_key_generator.dart';
 import 'grid_config_editor.dart';
+import 'grid_header_fields.dart';
 import 'scoring_criterion_tile.dart';
 
 class ScoringGridEditorBody extends StatefulWidget {
@@ -33,6 +34,7 @@ class ScoringGridEditorBody extends StatefulWidget {
 class _ScoringGridEditorBodyState extends State<ScoringGridEditorBody> {
   late final TextEditingController _nameCtrl;
   late final TextEditingController _descCtrl;
+  late final TextEditingController _offerCtrl;
   late List<ScoringCriterion> _criteria;
   late GridExclusionConfig _exclusionConfig;
   late GridRecommendationConfig _recommendationConfig;
@@ -42,6 +44,7 @@ class _ScoringGridEditorBodyState extends State<ScoringGridEditorBody> {
     super.initState();
     _nameCtrl = TextEditingController(text: widget.grid.name);
     _descCtrl = TextEditingController(text: widget.grid.description);
+    _offerCtrl = TextEditingController(text: widget.grid.offerLabel);
     _criteria = List.of(widget.grid.criteria);
     _exclusionConfig = widget.grid.exclusionConfig;
     _recommendationConfig = widget.grid.recommendationConfig;
@@ -51,6 +54,7 @@ class _ScoringGridEditorBodyState extends State<ScoringGridEditorBody> {
   void dispose() {
     _nameCtrl.dispose();
     _descCtrl.dispose();
+    _offerCtrl.dispose();
     super.dispose();
   }
 
@@ -89,6 +93,7 @@ class _ScoringGridEditorBodyState extends State<ScoringGridEditorBody> {
     return widget.grid.copyWith(
       name: _nameCtrl.text.trim().isEmpty ? widget.grid.name : _nameCtrl.text.trim(),
       description: _descCtrl.text.trim(),
+      offerLabel: _offerCtrl.text.trim(),
       criteria: _criteria,
       exclusionConfig: _exclusionConfig,
       recommendationConfig: _recommendationConfig,
@@ -109,18 +114,10 @@ class _ScoringGridEditorBodyState extends State<ScoringGridEditorBody> {
           : 'Éditer la grille',
       body: ListView(
         children: [
-          TextFormField(
-            controller: _nameCtrl,
-            decoration: const InputDecoration(labelText: 'Nom de la grille'),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          TextFormField(
-            controller: _descCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Description (optionnelle)',
-              hintText: 'Ex. : acquisition pharmacies pour groupe immobilier',
-            ),
-            maxLines: 2,
+          GridHeaderFields(
+            nameController: _nameCtrl,
+            descriptionController: _descCtrl,
+            offerController: _offerCtrl,
           ),
           const SizedBox(height: AppSpacing.lg),
           Text(

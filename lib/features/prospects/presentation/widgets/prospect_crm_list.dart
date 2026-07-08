@@ -21,7 +21,9 @@ class ProspectCrmList extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
         itemBuilder: (_, i) => ProspectCard(
           item: prospects[i],
-          onTap: () => context.go('/prospects/${prospects[i].prospect.id}'),
+          // push (et non go) : conserve la pile, le retour Android
+          // ramène au CRM au lieu de quitter l'application.
+          onTap: () => context.push('/prospects/${prospects[i].prospect.id}'),
         ),
       ),
       desktop: Scrollbar(
@@ -43,7 +45,7 @@ class ProspectCrmList extends StatelessWidget {
                 final p = item.prospect;
                 final s = item.score;
                 return DataRow(
-                  onSelectChanged: (_) => context.go('/prospects/${p.id}'),
+                  onSelectChanged: (_) => context.push('/prospects/${p.id}'),
                   cells: [
                     DataCell(Text(p.name)),
                     DataCell(Text(p.city ?? '-')),
@@ -51,7 +53,7 @@ class ProspectCrmList extends StatelessWidget {
                     DataCell(Text(p.email ?? '-')),
                     DataCell(Text('${s.globalScore}')),
                     DataCell(Text(s.priority.label)),
-                    DataCell(Text(s.recommendedOffer?.label ?? '-')),
+                    DataCell(Text(s.recommendedOffer ?? '-')),
                     DataCell(Text(p.status.label)),
                   ],
                 );

@@ -17,5 +17,11 @@ final authStateProvider = StreamProvider<AuthState>((ref) {
 });
 
 final currentUserProvider = Provider<User?>((ref) {
-  return ref.watch(supabaseClientProvider)?.auth.currentUser;
+  final client = ref.watch(supabaseClientProvider);
+  if (client == null) return null;
+  // Se réévalue à chaque événement d'auth (connexion, déconnexion,
+  // changement de compte) : les providers de données qui en dépendent
+  // sont ainsi invalidés et rechargés pour le nouvel utilisateur.
+  ref.watch(authStateProvider);
+  return client.auth.currentUser;
 });

@@ -14,19 +14,19 @@ export '../../../../core/network/repository_providers.dart'
 
 final scoringGridsProvider = FutureProvider<List<ScoringGrid>>((ref) async {
   final userId = ref.watch(currentUserProvider)?.id ?? DemoData.userId;
-  return ref.read(scoringGridRepositoryProvider).getAll(userId);
+  return ref.watch(scoringGridRepositoryProvider).getAll(userId);
 });
 
 final scoringGridByIdProvider =
     FutureProvider.family<ScoringGrid?, String>((ref, gridId) async {
-  return ref.read(scoringGridRepositoryProvider).getById(gridId);
+  return ref.watch(scoringGridRepositoryProvider).getById(gridId);
 });
 
 final campaignScoringGridProvider =
     FutureProvider.family<ScoringGrid, String>((ref, campaignId) async {
   final campaign =
       await ref.watch(campaignByIdProvider(campaignId).future);
-  final repo = ref.read(scoringGridRepositoryProvider);
+  final repo = ref.watch(scoringGridRepositoryProvider);
   final userId = ref.watch(currentUserProvider)?.id ?? DemoData.userId;
 
   if (campaign?.scoringGridId != null) {
@@ -50,9 +50,7 @@ final rescoreCampaignsForGridProvider =
     if (prospects.isEmpty) continue;
     final grid = await ref.read(campaignScoringGridProvider(campaign.id).future);
     final scoring = ProspectScoringService(grid: grid);
-    final scores = prospects
-        .map((p) => scoring.computeScore(p, campaign.offerType))
-        .toList();
+    final scores = prospects.map(scoring.computeScore).toList();
     await ref.read(prospectRepositoryProvider).saveScores(scores);
     ref.invalidate(prospectsWithScoresProvider(campaign.id));
   }

@@ -2,7 +2,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/entities/scoring_grid.dart';
 import '../../domain/repositories/scoring_grid_repository.dart';
-import '../grids/default_scoring_grids.dart';
 import '../models/scoring_grid_dto.dart';
 
 class SupabaseScoringGridRepository implements ScoringGridRepository {
@@ -16,16 +15,14 @@ class SupabaseScoringGridRepository implements ScoringGridRepository {
 
   @override
   Future<List<ScoringGrid>> getAll(String userId) async {
-    var grids = await _fetchGrids();
-    if (!_hasDefaultTemplates(grids)) {
-      await _seedDefaultGrids();
-      grids = await _fetchGrids();
-    }
-    return grids;
+    return _fetchGrids();
   }
 
   @override
   Future<ScoringGrid?> getById(String id) async {
+    // Ids sentinelles du mode démo ('grid-easyrest'…) : jamais en base,
+    // et un non-UUID ferait échouer la requête sur la colonne UUID.
+    if (!_looksLikeUuid(id)) return null;
     final row = await _client
         .from('scoring_grids')
         .select(_gridSelect)
@@ -85,24 +82,6 @@ class SupabaseScoringGridRepository implements ScoringGridRepository {
         .toList();
   }
 
-  bool _hasDefaultTemplates(List<ScoringGrid> grids) {
-    const required = {'LocalHunter Default', 'EasyRest Restauration'};
-    final names = grids.where((g) => g.isTemplate).map((g) => g.name).toSet();
-    return required.every(names.contains);
-  }
-
-  Future<void> _seedDefaultGrids() async {
-    final existing = await _fetchGrids();
-    for (final template in [
-      DefaultScoringGrids.localHunterDefault(userId: _userId),
-      DefaultScoringGrids.easyRest(userId: _userId),
-    ]) {
-      final exists =
-          existing.any((g) => g.name == template.name && g.isTemplate);
-      if (!exists) await save(template.copyWithNewId());
-    }
-  }
-
   Future<String> _persistGrid(ScoringGrid grid) async {
     final isNew = !_looksLikeUuid(grid.id);
     if (isNew) {
@@ -112,6 +91,7 @@ class SupabaseScoringGridRepository implements ScoringGridRepository {
             'user_id': _userId,
             'name': grid.name,
             'description': grid.description,
+            'offer_label': grid.offerLabel,
             'is_template': grid.isTemplate,
             'exclusion_config': grid.exclusionConfig.toJson(),
             'recommendation_config': grid.recommendationConfig.toJson(),
@@ -123,6 +103,7 @@ class SupabaseScoringGridRepository implements ScoringGridRepository {
     await _client.from('scoring_grids').update({
       'name': grid.name,
       'description': grid.description,
+      'offer_label': grid.offerLabel,
       'is_template': grid.isTemplate,
       'exclusion_config': grid.exclusionConfig.toJson(),
       'recommendation_config': grid.recommendationConfig.toJson(),
@@ -136,20 +117,5 @@ class SupabaseScoringGridRepository implements ScoringGridRepository {
       caseSensitive: false,
     );
     return re.hasMatch(id);
-  }
-}
-
-extension _ScoringGridSeed on ScoringGrid {
-  ScoringGrid copyWithNewId() {
-    return ScoringGrid(
-      id: '',
-      userId: userId,
-      name: name,
-      description: description,
-      criteria: criteria,
-      isTemplate: isTemplate,
-      exclusionConfig: exclusionConfig,
-      recommendationConfig: recommendationConfig,
-    );
   }
 }

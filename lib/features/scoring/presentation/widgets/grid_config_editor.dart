@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_spacing.dart';
-import '../../../../core/constants/offer_types.dart';
 import '../../domain/entities/grid_config.dart';
 import '../../domain/entities/scoring_grid.dart';
 import 'exclusion_rule_editor.dart';
@@ -68,7 +67,8 @@ class GridConfigEditor extends StatelessWidget {
             style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: AppSpacing.xs),
         const Text(
-          'Si un sous-score atteint le seuil, l\'offre est recommandée.',
+          'Si un sous-score atteint le seuil, le prospect est jugé pertinent '
+          'et l\'offre de la grille lui est recommandée.',
           style: TextStyle(fontSize: 13),
         ),
         const SizedBox(height: AppSpacing.sm),
@@ -104,7 +104,6 @@ class GridConfigEditor extends StatelessWidget {
               RecommendationRule(
                 criterionKey: _subScoreKeys.firstOrNull ?? 'site_score',
                 minStars: 3,
-                offerType: OfferType.website,
               ),
             ]),
           ),

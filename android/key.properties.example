@@ -1,0 +1,6 @@
+# Copier ce fichier en android/key.properties et remplir les valeurs.
+# key.properties est ignoré par git (contient des secrets).
+storePassword=MOT_DE_PASSE_KEYSTORE
+keyPassword=MOT_DE_PASSE_CLE
+keyAlias=upload
+storeFile=C:/chemin/vers/localhunter-upload-keystore.jks

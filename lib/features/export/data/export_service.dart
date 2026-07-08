@@ -33,7 +33,7 @@ class ExportService {
           p.phone ?? '',
           '${s.globalScore}',
           s.priority.label,
-          s.recommendedOffer?.label ?? '',
+          s.recommendedOffer ?? '',
           p.status.label,
         ];
       }),
@@ -67,7 +67,7 @@ class ExportService {
         TextCellValue(p.phone ?? ''),
         IntCellValue(s.globalScore),
         TextCellValue(s.priority.label),
-        TextCellValue(s.recommendedOffer?.label ?? ''),
+        TextCellValue(s.recommendedOffer ?? ''),
         TextCellValue(p.status.label),
       ]);
     }

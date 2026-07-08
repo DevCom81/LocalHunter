@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_spacing.dart';
-import '../../../../core/constants/offer_types.dart';
 import '../../domain/entities/grid_config.dart';
 
 class RecommendationRuleEditor extends StatelessWidget {
@@ -55,19 +54,6 @@ class RecommendationRuleEditor extends StatelessWidget {
             final parsed = double.tryParse(v);
             if (parsed != null) onChanged(rule.copyWith(minStars: parsed));
           },
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        DropdownButtonFormField<OfferType>(
-          initialValue: rule.offerType,
-          decoration: const InputDecoration(labelText: 'Offre', isDense: true),
-          items: OfferType.values
-              .map((o) => DropdownMenuItem(value: o, child: Text(o.label)))
-              .toList(),
-          onChanged: readOnly
-              ? null
-              : (v) {
-                  if (v != null) onChanged(rule.copyWith(offerType: v));
-                },
         ),
         const SizedBox(height: AppSpacing.sm),
         TextFormField(

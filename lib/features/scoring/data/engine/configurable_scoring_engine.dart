@@ -1,6 +1,5 @@
 import 'package:uuid/uuid.dart';
 
-import '../../../../core/constants/offer_types.dart';
 import '../../../../core/constants/priority_level.dart';
 import '../../../prospects/domain/entities/prospect.dart';
 import '../../domain/entities/grid_config.dart';
@@ -20,7 +19,7 @@ class ConfigurableScoringEngine {
   final RuleBasedScorer _scorer;
   final _uuid = const Uuid();
 
-  ProspectScore compute(Prospect prospect, {OfferType? campaignOffer}) {
+  ProspectScore compute(Prospect prospect) {
     final subScoreMap = <String, double>{};
     for (final c in _grid.criteria) {
       if (c.kind == CriterionKind.subScore && c.isActive) {
@@ -68,7 +67,6 @@ class ConfigurableScoringEngine {
     final recommended = _recommendOffer(
       isExcluded: isExcluded,
       subScores: subScoreMap,
-      campaignOffer: campaignOffer,
       category: prospect.category,
     );
 
@@ -82,13 +80,17 @@ class ConfigurableScoringEngine {
     );
   }
 
-  OfferType? _recommendOffer({
+  /// L'offre recommandée est celle de la grille ([ScoringGrid.offerLabel]).
+  /// Sans règle de recommandation, elle est proposée à tout prospect non
+  /// exclu ; avec règles, uniquement si l'une d'elles est satisfaite.
+  String? _recommendOffer({
     required bool isExcluded,
     required Map<String, double> subScores,
-    OfferType? campaignOffer,
     String? category,
   }) {
     if (isExcluded) return null;
+    final offer = _grid.offerLabel.isNotEmpty ? _grid.offerLabel : _grid.name;
+    if (_grid.recommendationConfig.rules.isEmpty) return offer;
     for (final rule in _grid.recommendationConfig.rules) {
       final stars = subScores[rule.criterionKey] ?? 0;
       if (stars < rule.minStars) continue;
@@ -96,9 +98,9 @@ class ConfigurableScoringEngine {
         final cat = category?.toLowerCase() ?? '';
         if (!cat.contains(rule.categoryKeyword!.toLowerCase())) continue;
       }
-      return rule.offerType;
+      return offer;
     }
-    return campaignOffer ?? OfferType.crm;
+    return null;
   }
 
   ProspectScore _buildScore({
@@ -107,7 +109,7 @@ class ConfigurableScoringEngine {
     required bool isExcluded,
     required Map<String, int> componentMap,
     required Map<String, double> subScoreMap,
-    required OfferType? recommended,
+    required String? recommended,
   }) {
     return ProspectScore(
       id: _uuid.v4(),
@@ -135,30 +137,10 @@ class ConfigurableScoringEngine {
 }
 
 GridRecommendationConfig defaultRecommendationConfig() {
-  return GridRecommendationConfig(
+  return const GridRecommendationConfig(
     rules: [
-      RecommendationRule(
-        criterionKey: 'easy_rest_score',
-        minStars: 3,
-        offerType: OfferType.easyRest,
-        categoryKeyword: 'rest',
-      ),
-      RecommendationRule(
-        criterionKey: 'easy_rest_score',
-        minStars: 3,
-        offerType: OfferType.easyRest,
-        categoryKeyword: 'bar',
-      ),
-      RecommendationRule(
-        criterionKey: 'site_score',
-        minStars: 3,
-        offerType: OfferType.website,
-      ),
-      RecommendationRule(
-        criterionKey: 'software_score',
-        minStars: 3,
-        offerType: OfferType.businessSoftware,
-      ),
+      RecommendationRule(criterionKey: 'site_score', minStars: 3),
+      RecommendationRule(criterionKey: 'software_score', minStars: 3),
     ],
   );
 }

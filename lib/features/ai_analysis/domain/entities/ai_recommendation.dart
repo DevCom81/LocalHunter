@@ -1,4 +1,3 @@
-import '../../../../core/constants/offer_types.dart';
 import '../../../../core/constants/priority_level.dart';
 
 class ObjectionResponse {
@@ -27,7 +26,9 @@ class AiRecommendation {
   final String id;
   final String prospectId;
   final PriorityLevel? priority;
-  final OfferType? bestOffer;
+
+  /// Offre à mettre en avant (libellé libre issu de la grille de scoring).
+  final String? bestOffer;
   final String? mainReason;
   final String? salesAngle;
   final String? facebookMessage;

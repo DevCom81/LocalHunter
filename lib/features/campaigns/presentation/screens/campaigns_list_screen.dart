@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/routing/route_names.dart';
 import '../../../../core/widgets/app_scaffold.dart';
+import '../../../subscription/domain/entities/subscription_tier.dart';
+import '../../../subscription/presentation/providers/subscription_providers.dart';
 import '../providers/campaign_providers.dart';
 import '../widgets/campaign_card.dart';
 
@@ -18,7 +20,32 @@ class CampaignsListScreen extends ConsumerWidget {
     return AppScaffold(
       title: 'Campagnes',
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.go('${RouteNames.campaigns}/create'),
+        onPressed: () async {
+          // Attendre le tier réel avant tout message de quota (une lecture
+          // pendant le chargement ferait passer un premium pour freemium).
+          final tier = await resolveTier(ref);
+          final atLimit = !tier.isPremium &&
+              (campaignsAsync.valueOrNull?.length ?? 0) >=
+                  FreemiumLimits.maxCampaigns;
+          if (!context.mounted) return;
+          if (atLimit) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                showCloseIcon: true,
+                content: Text(
+                  'Offre gratuite limitée à ${FreemiumLimits.maxCampaigns} '
+                  'campagne. ${FreemiumLimits.upgradeMessage}',
+                ),
+                action: SnackBarAction(
+                  label: 'Abonnement',
+                  onPressed: () => context.go(RouteNames.subscription),
+                ),
+              ),
+            );
+            return;
+          }
+          context.go('${RouteNames.campaigns}/create');
+        },
         label: const Text('Nouvelle campagne'),
         icon: const Icon(Icons.add),
       ),

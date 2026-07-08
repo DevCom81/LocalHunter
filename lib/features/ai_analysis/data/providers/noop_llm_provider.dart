@@ -4,7 +4,6 @@ import '../../domain/entities/ai_recommendation.dart';
 import '../../domain/providers/llm_provider.dart';
 import '../../../prospects/domain/entities/prospect.dart';
 import '../../../scoring/domain/entities/prospect_score.dart';
-import '../../../../core/constants/offer_types.dart';
 
 class NoopLLMProvider implements LLMProvider {
   @override
@@ -14,7 +13,7 @@ class NoopLLMProvider implements LLMProvider {
   Future<AiRecommendation> analyzeProspect({
     required Prospect prospect,
     required ProspectScore score,
-    required OfferType campaignOffer,
+    String? offerLabel,
   }) async {
     return AiRecommendation(
       id: const Uuid().v4(),

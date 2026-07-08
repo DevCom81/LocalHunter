@@ -21,11 +21,18 @@ class _ImportCsvScreenState extends ConsumerState<ImportCsvScreen> {
 
   Future<void> _importContent(String content) async {
     try {
-      final count = await ref.read(importCsvProvider.notifier).importFromContent(
-            campaignId: widget.campaignId,
-            content: content,
-          );
-      setState(() => _message = '$count prospects importés avec scores.');
+      final result =
+          await ref.read(importCsvProvider.notifier).importFromContent(
+                campaignId: widget.campaignId,
+                content: content,
+              );
+      final quota = result.truncatedByQuota
+          ? ' Limite gratuite atteinte — pour plus de résultats, abonnez-vous.'
+          : '';
+      setState(
+        () => _message =
+            '${result.imported} prospects importés avec scores.$quota',
+      );
     } catch (e) {
       setState(() => _message = 'Erreur : $e');
     }

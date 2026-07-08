@@ -20,8 +20,14 @@ class Prospect {
     this.isExcluded = false,
     this.exclusionReason,
     this.siren,
+    this.siret,
     this.nafCode,
     this.legalForm,
+    this.creationDate,
+    this.pagespeedScore,
+    this.annualRevenue,
+    this.annualRevenueYear,
+    this.netIncome,
     this.googlePlaceId,
     this.enrichedAt,
     this.enrichmentSource,
@@ -47,8 +53,21 @@ class Prospect {
   final bool isExcluded;
   final String? exclusionReason;
   final String? siren;
+  final String? siret;
   final String? nafCode;
   final String? legalForm;
+
+  /// Date de création de l'établissement (SIRENE) — mesure l'ancienneté.
+  final DateTime? creationDate;
+
+  /// Score de performance mobile PageSpeed Insights (0-100).
+  final int? pagespeedScore;
+
+  /// Chiffre d'affaires du dernier bilan publié (INPI), en euros.
+  final int? annualRevenue;
+  final int? annualRevenueYear;
+  final int? netIncome;
+
   final String? googlePlaceId;
   final DateTime? enrichedAt;
   final String? enrichmentSource;
@@ -59,11 +78,31 @@ class Prospect {
   bool get hasPhone => phone != null && phone!.isNotEmpty;
   bool get hasWebsite => website != null && website!.isNotEmpty;
 
+  /// N° TVA intracommunautaire français, dérivé du SIREN
+  /// (clé = (12 + 3 × (SIREN mod 97)) mod 97).
+  String? get vatNumber {
+    final s = siren?.replaceAll(RegExp(r'\D'), '');
+    if (s == null || s.length != 9) return null;
+    final key = (12 + 3 * (int.parse(s) % 97)) % 97;
+    return 'FR${key.toString().padLeft(2, '0')}$s';
+  }
+
   Prospect copyWith({
     bool? isExcluded,
     String? exclusionReason,
     ProspectStatus? status,
     Map<String, String>? customFields,
+    String? managerName,
+    String? siren,
+    String? siret,
+    String? nafCode,
+    String? legalForm,
+    DateTime? creationDate,
+    int? pagespeedScore,
+    int? annualRevenue,
+    int? annualRevenueYear,
+    int? netIncome,
+    DateTime? enrichedAt,
   }) {
     return Prospect(
       id: id,
@@ -71,7 +110,7 @@ class Prospect {
       name: name,
       city: city,
       address: address,
-      managerName: managerName,
+      managerName: managerName ?? this.managerName,
       email: email,
       phone: phone,
       website: website,
@@ -83,11 +122,17 @@ class Prospect {
       status: status ?? this.status,
       isExcluded: isExcluded ?? this.isExcluded,
       exclusionReason: exclusionReason ?? this.exclusionReason,
-      siren: siren,
-      nafCode: nafCode,
-      legalForm: legalForm,
+      siren: siren ?? this.siren,
+      siret: siret ?? this.siret,
+      nafCode: nafCode ?? this.nafCode,
+      legalForm: legalForm ?? this.legalForm,
+      creationDate: creationDate ?? this.creationDate,
+      pagespeedScore: pagespeedScore ?? this.pagespeedScore,
+      annualRevenue: annualRevenue ?? this.annualRevenue,
+      annualRevenueYear: annualRevenueYear ?? this.annualRevenueYear,
+      netIncome: netIncome ?? this.netIncome,
       googlePlaceId: googlePlaceId,
-      enrichedAt: enrichedAt,
+      enrichedAt: enrichedAt ?? this.enrichedAt,
       enrichmentSource: enrichmentSource,
       createdAt: createdAt,
       customFields: customFields ?? this.customFields,

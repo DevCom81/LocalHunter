@@ -20,6 +20,16 @@ class ProspectDto {
     this.status = 'new',
     this.isExcluded = false,
     this.exclusionReason,
+    this.siren,
+    this.siret,
+    this.nafCode,
+    this.legalForm,
+    this.creationDate,
+    this.pagespeedScore,
+    this.annualRevenue,
+    this.annualRevenueYear,
+    this.netIncome,
+    this.enrichedAt,
     this.createdAt,
     this.customFields = const {},
   });
@@ -44,6 +54,20 @@ class ProspectDto {
       status: json['status'] as String? ?? 'new',
       isExcluded: json['is_excluded'] as bool? ?? false,
       exclusionReason: json['exclusion_reason'] as String?,
+      siren: json['siren'] as String?,
+      siret: json['siret'] as String?,
+      nafCode: json['naf_code'] as String?,
+      legalForm: json['legal_form'] as String?,
+      creationDate: json['creation_date'] != null
+          ? DateTime.tryParse(json['creation_date'] as String)
+          : null,
+      pagespeedScore: json['pagespeed_score'] as int?,
+      annualRevenue: (json['annual_revenue'] as num?)?.toInt(),
+      annualRevenueYear: json['annual_revenue_year'] as int?,
+      netIncome: (json['net_income'] as num?)?.toInt(),
+      enrichedAt: json['enriched_at'] != null
+          ? DateTime.tryParse(json['enriched_at'] as String)
+          : null,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : null,
@@ -70,6 +94,16 @@ class ProspectDto {
   final String status;
   final bool isExcluded;
   final String? exclusionReason;
+  final String? siren;
+  final String? siret;
+  final String? nafCode;
+  final String? legalForm;
+  final DateTime? creationDate;
+  final int? pagespeedScore;
+  final int? annualRevenue;
+  final int? annualRevenueYear;
+  final int? netIncome;
+  final DateTime? enrichedAt;
   final DateTime? createdAt;
   final Map<String, String> customFields;
 
@@ -92,6 +126,16 @@ class ProspectDto {
       'status': status,
       'is_excluded': isExcluded,
       'exclusion_reason': exclusionReason,
+      'siren': siren,
+      'siret': siret,
+      'naf_code': nafCode,
+      'legal_form': legalForm,
+      'creation_date': creationDate?.toIso8601String().substring(0, 10),
+      'pagespeed_score': pagespeedScore,
+      'annual_revenue': annualRevenue,
+      'annual_revenue_year': annualRevenueYear,
+      'net_income': netIncome,
+      'enriched_at': enrichedAt?.toIso8601String(),
       'enrichment_source': 'csv',
       if (customFields.isNotEmpty) 'custom_fields': customFields,
     };
@@ -117,6 +161,16 @@ Prospect prospectFromDto(ProspectDto dto) {
     status: ProspectStatus.fromDb(dto.status),
     isExcluded: dto.isExcluded,
     exclusionReason: dto.exclusionReason,
+    siren: dto.siren,
+    siret: dto.siret,
+    nafCode: dto.nafCode,
+    legalForm: dto.legalForm,
+    creationDate: dto.creationDate,
+    pagespeedScore: dto.pagespeedScore,
+    annualRevenue: dto.annualRevenue,
+    annualRevenueYear: dto.annualRevenueYear,
+    netIncome: dto.netIncome,
+    enrichedAt: dto.enrichedAt,
     createdAt: dto.createdAt,
     enrichmentSource: 'csv',
     customFields: dto.customFields,

@@ -1,4 +1,3 @@
-import '../../../../core/constants/offer_types.dart';
 import '../../domain/entities/campaign.dart';
 
 class CampaignDto {
@@ -10,7 +9,6 @@ class CampaignDto {
     required this.city,
     required this.radiusKm,
     required this.targetCount,
-    required this.offerType,
     required this.createdAt,
     this.updatedAt,
     this.scoringGridId,
@@ -25,7 +23,6 @@ class CampaignDto {
       city: json['city'] as String,
       radiusKm: json['radius_km'] as int,
       targetCount: json['target_count'] as int,
-      offerType: json['offer_type'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'] as String)
@@ -41,7 +38,6 @@ class CampaignDto {
   final String city;
   final int radiusKm;
   final int targetCount;
-  final String offerType;
   final DateTime createdAt;
   final DateTime? updatedAt;
   final String? scoringGridId;
@@ -54,7 +50,6 @@ class CampaignDto {
       'city': city,
       'radius_km': radiusKm,
       'target_count': targetCount,
-      'offer_type': offerType,
     };
   }
 }
@@ -68,7 +63,6 @@ Campaign campaignFromDto(CampaignDto dto) {
     city: dto.city,
     radiusKm: dto.radiusKm,
     targetCount: dto.targetCount,
-    offerType: OfferType.fromDb(dto.offerType),
     scoringGridId: dto.scoringGridId,
     createdAt: dto.createdAt,
     updatedAt: dto.updatedAt,

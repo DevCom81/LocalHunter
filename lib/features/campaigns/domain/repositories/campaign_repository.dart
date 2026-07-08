@@ -1,5 +1,4 @@
 import '../entities/campaign.dart';
-import '../../../../core/constants/offer_types.dart';
 
 class CreateCampaignInput {
   const CreateCampaignInput({
@@ -8,7 +7,6 @@ class CreateCampaignInput {
     required this.city,
     required this.radiusKm,
     required this.targetCount,
-    required this.offerType,
     this.scoringGridId,
   });
 
@@ -17,7 +15,6 @@ class CreateCampaignInput {
   final String city;
   final int radiusKm;
   final int targetCount;
-  final OfferType offerType;
   final String? scoringGridId;
 }
 
@@ -25,4 +22,8 @@ abstract class CampaignRepository {
   Future<List<Campaign>> getAll();
   Future<Campaign?> getById(String id);
   Future<Campaign> create(CreateCampaignInput input);
+
+  /// Supprime la campagne et ses données liées (prospects, scores…)
+  /// via ON DELETE CASCADE côté base.
+  Future<void> delete(String id);
 }

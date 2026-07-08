@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/constants/prospect_status.dart';
 import '../../domain/entities/prospect.dart';
 import '../../domain/repositories/prospect_repository.dart';
 import '../../../scoring/domain/entities/prospect_score.dart';
@@ -31,6 +32,14 @@ class SupabaseProspectRepository implements ProspectRepository {
   }
 
   @override
+  Future<void> updateStatus(String id, ProspectStatus status) async {
+    await _client
+        .from('prospects')
+        .update({'status': status.dbValue})
+        .eq('id', id);
+  }
+
+  @override
   Future<List<Prospect>> importProspects(
     String campaignId,
     List<Prospect> prospects,
@@ -55,6 +64,16 @@ class SupabaseProspectRepository implements ProspectRepository {
               status: p.status.dbValue,
               isExcluded: p.isExcluded,
               exclusionReason: p.exclusionReason,
+              siren: p.siren,
+              siret: p.siret,
+              nafCode: p.nafCode,
+              legalForm: p.legalForm,
+              creationDate: p.creationDate,
+              pagespeedScore: p.pagespeedScore,
+              annualRevenue: p.annualRevenue,
+              annualRevenueYear: p.annualRevenueYear,
+              netIncome: p.netIncome,
+              enrichedAt: p.enrichedAt,
               customFields: p.customFields,
             ).toInsertJson())
         .toList();

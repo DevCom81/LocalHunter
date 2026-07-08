@@ -1,4 +1,3 @@
-import '../../../../core/constants/offer_types.dart';
 import '../../../../core/constants/priority_level.dart';
 import '../../../../core/constants/prospect_status.dart';
 import '../../../prospects/domain/entities/prospect.dart';
@@ -25,7 +24,7 @@ class ProspectScoringService {
     );
   }
 
-  ProspectScore computeScore(Prospect prospect, OfferType offerType) {
-    return _engine.compute(prospect, campaignOffer: offerType);
+  ProspectScore computeScore(Prospect prospect) {
+    return _engine.compute(prospect);
   }
 }

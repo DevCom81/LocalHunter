@@ -3,25 +3,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/campaign.dart';
 import '../../domain/repositories/campaign_repository.dart';
 import '../../../../core/network/repository_providers.dart';
-import '../../../../core/network/supabase_client_provider.dart';
-import '../../../prospects/data/demo/demo_data.dart';
-import '../../../scoring/data/grids/default_scoring_grids.dart';
-import '../../../scoring/presentation/providers/scoring_providers.dart';
 
 class CampaignsNotifier extends AsyncNotifier<List<Campaign>> {
   @override
   Future<List<Campaign>> build() async {
-    return ref.read(campaignRepositoryProvider).getAll();
+    // watch (et non read) : le repository change avec l'utilisateur
+    // connecté, la liste doit être rechargée au changement de compte.
+    return ref.watch(campaignRepositoryProvider).getAll();
   }
 
+  /// La campagne référence directement une grille personnelle (aucune copie
+  /// n'est créée : une grille peut être partagée par plusieurs campagnes).
   Future<Campaign> create(CreateCampaignInput input) async {
-    final userId = ref.read(currentUserProvider)?.id ?? DemoData.userId;
     final gridRepo = ref.read(scoringGridRepositoryProvider);
-    final gridId = await _resolveCampaignGridId(
-      gridRepo: gridRepo,
-      input: input,
-      userId: userId,
-    );
+    final gridId = input.scoringGridId != null &&
+            await gridRepo.getById(input.scoringGridId!) != null
+        ? input.scoringGridId
+        : null;
 
     final created = await ref.read(campaignRepositoryProvider).create(
           CreateCampaignInput(
@@ -30,36 +28,19 @@ class CampaignsNotifier extends AsyncNotifier<List<Campaign>> {
             city: input.city,
             radiusKm: input.radiusKm,
             targetCount: input.targetCount,
-            offerType: input.offerType,
             scoringGridId: gridId,
           ),
         );
-    ref.invalidate(scoringGridsProvider);
     state = AsyncData([created, ...?state.value]);
     return created;
   }
 
-  Future<String> _resolveCampaignGridId({
-    required dynamic gridRepo,
-    required CreateCampaignInput input,
-    required String userId,
-  }) async {
-    final gridName = '${input.name} — scoring';
-    if (input.scoringGridId != null) {
-      final source = await gridRepo.getById(input.scoringGridId!);
-      if (source != null) {
-        final cloned = DefaultScoringGrids.duplicateFrom(
-          source,
-          userId: userId,
-          name: gridName,
-        );
-        final saved = await gridRepo.save(cloned);
-        return saved.id;
-      }
-    }
-    final blank = DefaultScoringGrids.blank(userId: userId, name: gridName);
-    final saved = await gridRepo.save(blank);
-    return saved.id;
+  Future<void> delete(String id) async {
+    await ref.read(campaignRepositoryProvider).delete(id);
+    ref.invalidate(campaignByIdProvider(id));
+    state = AsyncData(
+      [...?state.value]..removeWhere((c) => c.id == id),
+    );
   }
 
   Future<void> refresh() async {
@@ -75,5 +56,5 @@ final campaignsProvider =
 
 final campaignByIdProvider =
     FutureProvider.family<Campaign?, String>((ref, id) async {
-  return ref.read(campaignRepositoryProvider).getById(id);
+  return ref.watch(campaignRepositoryProvider).getById(id);
 });

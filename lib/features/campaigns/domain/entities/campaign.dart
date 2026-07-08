@@ -1,5 +1,5 @@
-import '../../../../core/constants/offer_types.dart';
-
+/// Une campagne définit la cible de prospection (secteur recherché, ville,
+/// rayon, volume) ; l'offre promue est portée par la grille de scoring liée.
 class Campaign {
   const Campaign({
     required this.id,
@@ -9,7 +9,6 @@ class Campaign {
     required this.city,
     required this.radiusKm,
     required this.targetCount,
-    required this.offerType,
     required this.createdAt,
     this.scoringGridId,
     this.updatedAt,
@@ -22,7 +21,6 @@ class Campaign {
   final String city;
   final int radiusKm;
   final int targetCount;
-  final OfferType offerType;
   final String? scoringGridId;
   final DateTime createdAt;
   final DateTime? updatedAt;
@@ -31,7 +29,6 @@ class Campaign {
     String? name,
     int? radiusKm,
     int? targetCount,
-    OfferType? offerType,
     String? scoringGridId,
   }) {
     return Campaign(
@@ -42,7 +39,6 @@ class Campaign {
       city: city,
       radiusKm: radiusKm ?? this.radiusKm,
       targetCount: targetCount ?? this.targetCount,
-      offerType: offerType ?? this.offerType,
       scoringGridId: scoringGridId ?? this.scoringGridId,
       createdAt: createdAt,
       updatedAt: updatedAt,

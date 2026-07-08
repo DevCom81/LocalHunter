@@ -1,4 +1,3 @@
-import '../../../../core/constants/offer_types.dart';
 import '../../../../core/constants/priority_level.dart';
 
 class ProspectScore {
@@ -38,7 +37,10 @@ class ProspectScore {
   final double digitalMaturity;
   final double falsePositiveRisk;
   final PriorityLevel priority;
-  final OfferType? recommendedOffer;
+
+  /// Offre recommandée pour ce prospect (libellé libre issu de la grille),
+  /// null si le prospect est exclu ou non pertinent pour l'offre.
+  final String? recommendedOffer;
   final DateTime? computedAt;
   final int scoringVersion;
   final Map<String, int> componentScores;

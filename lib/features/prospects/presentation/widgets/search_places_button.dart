@@ -26,7 +26,7 @@ class SearchPlacesButton extends ConsumerWidget {
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           : const Icon(Icons.search, size: 18),
-      label: const Text('Rechercher (Google Places)'),
+      label: const Text('Recherche Prospects'),
       onPressed: loading
           ? null
           : () async {
@@ -36,10 +36,14 @@ class SearchPlacesButton extends ConsumerWidget {
                     .searchForCampaign(campaignId);
                 if (!context.mounted) return;
                 final cache = result.fromCache ? ' (cache)' : '';
+                final quota = result.truncatedByQuota
+                    ? ' — limite gratuite atteinte. '
+                        'Pour plus de résultats, abonnez-vous.'
+                    : '';
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      '${result.count} prospects importés$cache',
+                      '${result.count} prospects importés$cache$quota',
                     ),
                   ),
                 );

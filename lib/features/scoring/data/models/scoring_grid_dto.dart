@@ -9,6 +9,7 @@ class ScoringGridDto {
     required this.name,
     required this.isTemplate,
     this.description = '',
+    this.offerLabel = '',
     this.criteria = const [],
     this.exclusionConfig = const {},
     this.recommendationConfig = const {},
@@ -25,6 +26,7 @@ class ScoringGridDto {
       userId: json['user_id'] as String,
       name: json['name'] as String,
       description: json['description'] as String? ?? '',
+      offerLabel: json['offer_label'] as String? ?? '',
       isTemplate: json['is_template'] as bool? ?? false,
       criteria: criteria,
       exclusionConfig:
@@ -38,6 +40,7 @@ class ScoringGridDto {
   final String userId;
   final String name;
   final String description;
+  final String offerLabel;
   final bool isTemplate;
   final List<ScoringCriterionDto> criteria;
   final Map<String, dynamic> exclusionConfig;
@@ -115,6 +118,7 @@ ScoringGrid scoringGridFromDto(ScoringGridDto dto) {
     userId: dto.userId,
     name: dto.name,
     description: dto.description,
+    offerLabel: dto.offerLabel,
     isTemplate: dto.isTemplate,
     exclusionConfig: GridExclusionConfig.fromJson(dto.exclusionConfig),
     recommendationConfig: GridRecommendationConfig.fromJson(dto.recommendationConfig),

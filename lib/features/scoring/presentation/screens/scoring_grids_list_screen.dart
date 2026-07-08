@@ -6,6 +6,7 @@ import '../../../../core/routing/route_names.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../domain/entities/scoring_grid.dart';
 import '../providers/scoring_providers.dart';
+import '../widgets/grid_create_menu.dart';
 
 class ScoringGridsListScreen extends ConsumerWidget {
   const ScoringGridsListScreen({super.key});
@@ -17,7 +18,7 @@ class ScoringGridsListScreen extends ConsumerWidget {
     return AppScaffold(
       title: 'Scoring',
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showCreateMenu(context, ref),
+        onPressed: () => GridCreateMenu.show(context, ref),
         icon: const Icon(Icons.add),
         label: const Text('Nouvelle grille'),
       ),
@@ -41,67 +42,6 @@ class ScoringGridsListScreen extends ConsumerWidget {
     );
   }
 
-  void _showCreateMenu(BuildContext context, WidgetRef ref) {
-    showModalBottomSheet<void>(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.note_add_outlined),
-              title: const Text('Grille vierge'),
-              subtitle: const Text('Partir de zéro avec vos propres critères'),
-              onTap: () {
-                Navigator.pop(ctx);
-                context.go(RouteNames.scoringCreate);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.copy_outlined),
-              title: const Text('Dupliquer un modèle'),
-              subtitle: const Text(
-                'Copier une grille existante puis personnaliser',
-              ),
-              onTap: () {
-                Navigator.pop(ctx);
-                _pickTemplate(context, ref);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _pickTemplate(BuildContext context, WidgetRef ref) {
-    final grids = ref.read(scoringGridsProvider).valueOrNull;
-    if (grids == null || grids.isEmpty) return;
-    showModalBottomSheet<void>(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          children: grids
-              .map(
-                (g) => ListTile(
-                  title: Text(g.name),
-                  subtitle: Text(
-                    g.isTemplate
-                        ? 'Modèle · ${g.totalMax} pts'
-                        : '${g.totalMax} pts',
-                  ),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    context.go('${RouteNames.scoringCreate}?duplicate=${g.id}');
-                  },
-                ),
-              )
-              .toList(),
-        ),
-      ),
-    );
-  }
 }
 
 class _GridListTile extends ConsumerWidget {
@@ -120,16 +60,20 @@ class _GridListTile extends ConsumerWidget {
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       ),
-      trailing: PopupMenuButton<String>(
-        onSelected: (action) => _handleAction(context, ref, action),
-        itemBuilder: (_) => const [
-          PopupMenuItem(value: 'edit', child: Text('Modifier')),
-          PopupMenuItem(value: 'duplicate', child: Text('Dupliquer')),
-          PopupMenuItem(value: 'delete', child: Text('Supprimer')),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (grid.isTemplate) const Chip(label: Text('Modèle')),
+          PopupMenuButton<String>(
+            onSelected: (action) => _handleAction(context, ref, action),
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'edit', child: Text('Modifier')),
+              PopupMenuItem(value: 'duplicate', child: Text('Dupliquer')),
+              PopupMenuItem(value: 'delete', child: Text('Supprimer')),
+            ],
+            icon: const Icon(Icons.more_vert),
+          ),
         ],
-        child: grid.isTemplate
-            ? const Chip(label: Text('Modèle'))
-            : const Icon(Icons.more_vert),
       ),
       onTap: () => context.go(RouteNames.scoringGridEdit(grid.id)),
     );

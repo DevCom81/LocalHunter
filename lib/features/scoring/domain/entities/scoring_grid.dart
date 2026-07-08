@@ -50,6 +50,7 @@ class ScoringGrid {
     required this.name,
     required this.criteria,
     this.description = '',
+    this.offerLabel = '',
     this.isTemplate = false,
     this.exclusionConfig = const GridExclusionConfig(),
     this.recommendationConfig = const GridRecommendationConfig(),
@@ -59,6 +60,9 @@ class ScoringGrid {
   final String userId;
   final String name;
   final String description;
+
+  /// Offre promue par cette grille (texte libre, ex. « Pose de parquet »).
+  final String offerLabel;
   final List<ScoringCriterion> criteria;
   final bool isTemplate;
   final GridExclusionConfig exclusionConfig;
@@ -81,6 +85,7 @@ class ScoringGrid {
     String? userId,
     String? name,
     String? description,
+    String? offerLabel,
     List<ScoringCriterion>? criteria,
     bool? isTemplate,
     GridExclusionConfig? exclusionConfig,
@@ -91,6 +96,7 @@ class ScoringGrid {
       userId: userId ?? this.userId,
       name: name ?? this.name,
       description: description ?? this.description,
+      offerLabel: offerLabel ?? this.offerLabel,
       criteria: criteria ?? this.criteria,
       isTemplate: isTemplate ?? this.isTemplate,
       exclusionConfig: exclusionConfig ?? this.exclusionConfig,

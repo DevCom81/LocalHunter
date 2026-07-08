@@ -17,6 +17,8 @@ class ProspectFieldResolver {
     'siren',
     'naf_code',
     'legal_form',
+    'pagespeed_score',
+    'company_age_years',
   };
 
   static String? getString(Prospect prospect, String field) {
@@ -58,6 +60,12 @@ class ProspectFieldResolver {
         return prospect.googleRating;
       case 'google_reviews':
         return prospect.googleReviews.toDouble();
+      case 'pagespeed_score':
+        return prospect.pagespeedScore?.toDouble();
+      case 'company_age_years':
+        final created = prospect.creationDate;
+        if (created == null) return null;
+        return DateTime.now().difference(created).inDays / 365.25;
       default:
         final raw = prospect.customFields[field];
         if (raw == null || raw.isEmpty) return null;
@@ -87,6 +95,8 @@ const prospectFieldLabels = <String, String>{
   'siren': 'SIREN',
   'naf_code': 'Code NAF',
   'legal_form': 'Forme juridique',
+  'pagespeed_score': 'Score PageSpeed (mobile)',
+  'company_age_years': 'Ancienneté (années)',
 };
 
 String labelForField(String field) =>

@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_spacing.dart';
-import '../../../../core/constants/offer_types.dart';
 import '../../../../core/routing/route_names.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../scoring/data/grids/default_scoring_grids.dart';
@@ -26,16 +25,8 @@ class _CampaignCreateScreenState extends ConsumerState<CampaignCreateScreen> {
   final _cityCtrl = TextEditingController();
   final _radiusCtrl = TextEditingController(text: '15');
   final _targetCtrl = TextEditingController(text: '20');
-  OfferType _offerType = OfferType.easyRest;
   String? _scoringGridId;
   bool _saving = false;
-  bool _gridManuallySet = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _scoringGridId = DefaultScoringGrids.easyRestId;
-  }
 
   @override
   void dispose() {
@@ -60,7 +51,6 @@ class _CampaignCreateScreenState extends ConsumerState<CampaignCreateScreen> {
               city: _cityCtrl.text.trim(),
               radiusKm: int.parse(_radiusCtrl.text),
               targetCount: int.parse(_targetCtrl.text),
-              offerType: _offerType,
               scoringGridId: _scoringGridId,
             ),
           );
@@ -112,22 +102,6 @@ class _CampaignCreateScreenState extends ConsumerState<CampaignCreateScreen> {
               keyboardType: TextInputType.number,
             ),
             const SizedBox(height: AppSpacing.md),
-            DropdownButtonFormField<OfferType>(
-              initialValue: _offerType,
-              decoration: const InputDecoration(labelText: 'Type d\'offre'),
-              items: OfferType.values
-                  .map((o) => DropdownMenuItem(value: o, child: Text(o.label)))
-                  .toList(),
-              onChanged: (v) => setState(() {
-                _offerType = v ?? _offerType;
-                if (!_gridManuallySet) {
-                  _scoringGridId = _offerType == OfferType.easyRest
-                      ? DefaultScoringGrids.easyRestId
-                      : DefaultScoringGrids.defaultId;
-                }
-              }),
-            ),
-            const SizedBox(height: AppSpacing.md),
             gridsAsync.when(
               loading: () => const LinearProgressIndicator(),
               error: (e, _) => Text('$e'),
@@ -135,7 +109,7 @@ class _CampaignCreateScreenState extends ConsumerState<CampaignCreateScreen> {
                 final ids = grids.map((g) => g.id).toSet();
                 final resolved = ids.contains(_scoringGridId)
                     ? _scoringGridId
-                    : DefaultScoringGrids.forOfferType(grids, _offerType)?.id;
+                    : DefaultScoringGrids.resolveDefault(grids)?.id;
                 if (resolved != null && resolved != _scoringGridId) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     if (mounted) setState(() => _scoringGridId = resolved);
@@ -146,20 +120,23 @@ class _CampaignCreateScreenState extends ConsumerState<CampaignCreateScreen> {
                       ? _scoringGridId
                       : resolved,
                   decoration: const InputDecoration(
-                    labelText: 'Modèle de scoring',
+                    labelText: 'Grille de scoring',
                     helperText:
-                        'Une copie exclusive sera créée pour la campagne',
+                        'Détermine l\'offre promue et l\'évaluation des prospects',
                   ),
                   items: grids
                       .map(
-                        (g) =>
-                            DropdownMenuItem(value: g.id, child: Text(g.name)),
+                        (g) => DropdownMenuItem(
+                          value: g.id,
+                          child: Text(
+                            g.offerLabel.isEmpty
+                                ? g.name
+                                : '${g.name} — ${g.offerLabel}',
+                          ),
+                        ),
                       )
                       .toList(),
-                  onChanged: (v) => setState(() {
-                    _scoringGridId = v;
-                    _gridManuallySet = true;
-                  }),
+                  onChanged: (v) => setState(() => _scoringGridId = v),
                 );
               },
             ),

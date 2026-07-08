@@ -1,6 +1,19 @@
-import '../../../../core/constants/offer_types.dart';
 import '../../../../core/constants/priority_level.dart';
 import '../../../scoring/domain/entities/prospect_score.dart';
+
+/// Valeurs héritées de l'ancien enum offer_type (scores calculés avant la
+/// migration 007) : réaffichées avec un libellé lisible.
+const _legacyOfferLabels = {
+  'website': 'Site web',
+  'business_software': 'Logiciel métier',
+  'easy_rest': 'EasyRest',
+  'crm': 'CRM',
+};
+
+String? _displayOffer(String? raw) {
+  if (raw == null) return null;
+  return _legacyOfferLabels[raw] ?? raw;
+}
 
 class ProspectScoreDto {
   ProspectScoreDto({
@@ -108,9 +121,7 @@ ProspectScore prospectScoreFromDto(ProspectScoreDto dto, {String? id}) {
     digitalMaturity: dto.digitalMaturity,
     falsePositiveRisk: dto.falsePositiveRisk,
     priority: PriorityLevel.fromDb(dto.priority),
-    recommendedOffer: dto.recommendedOffer != null
-        ? OfferType.fromDb(dto.recommendedOffer!)
-        : null,
+    recommendedOffer: _displayOffer(dto.recommendedOffer),
     computedAt: DateTime.now(),
     scoringVersion: dto.scoringVersion,
     componentScores: dto.componentScores,
@@ -133,7 +144,7 @@ ProspectScoreDto prospectScoreToDto(ProspectScore score) {
     digitalMaturity: score.digitalMaturity,
     falsePositiveRisk: score.falsePositiveRisk,
     priority: score.priority.dbValue,
-    recommendedOffer: score.recommendedOffer?.dbValue,
+    recommendedOffer: score.recommendedOffer,
     scoringVersion: score.scoringVersion,
     componentScores: score.componentScores,
     subScores: score.subScores,

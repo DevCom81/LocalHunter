@@ -1,5 +1,3 @@
-import '../../../../core/constants/offer_types.dart';
-
 class ExclusionRule {
   const ExclusionRule({
     required this.type,
@@ -95,24 +93,24 @@ class GridExclusionConfig {
   }
 }
 
+/// Règle « prospect pertinent pour l'offre » : si le sous-score atteint le
+/// seuil (et que la catégorie correspond, le cas échéant), l'offre de la
+/// grille ([ScoringGrid.offerLabel]) est recommandée pour ce prospect.
 class RecommendationRule {
   const RecommendationRule({
     required this.criterionKey,
     required this.minStars,
-    required this.offerType,
     this.categoryKeyword,
   });
 
   final String criterionKey;
   final double minStars;
-  final OfferType offerType;
   final String? categoryKeyword;
 
   factory RecommendationRule.fromJson(Map<String, dynamic> json) {
     return RecommendationRule(
       criterionKey: json['criterion_key'] as String,
       minStars: (json['min_stars'] as num).toDouble(),
-      offerType: OfferType.fromDb(json['offer_type'] as String),
       categoryKeyword: json['category_keyword'] as String?,
     );
   }
@@ -120,20 +118,17 @@ class RecommendationRule {
   Map<String, dynamic> toJson() => {
         'criterion_key': criterionKey,
         'min_stars': minStars,
-        'offer_type': offerType.dbValue,
         if (categoryKeyword != null) 'category_keyword': categoryKeyword,
       };
 
   RecommendationRule copyWith({
     String? criterionKey,
     double? minStars,
-    OfferType? offerType,
     String? categoryKeyword,
   }) {
     return RecommendationRule(
       criterionKey: criterionKey ?? this.criterionKey,
       minStars: minStars ?? this.minStars,
-      offerType: offerType ?? this.offerType,
       categoryKeyword: categoryKeyword ?? this.categoryKeyword,
     );
   }

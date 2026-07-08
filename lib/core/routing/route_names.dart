@@ -12,6 +12,7 @@ abstract final class RouteNames {
   static const prospectAi = '/prospects/:id/ai';
   static const scoring = '/scoring';
   static const scoringCreate = '/scoring/create';
+  static const subscription = '/subscription';
 
   static String scoringGridEdit(String gridId) => '$scoring/$gridId';
 

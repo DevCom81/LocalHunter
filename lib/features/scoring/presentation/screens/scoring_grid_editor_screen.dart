@@ -16,11 +16,15 @@ class ScoringGridEditorScreen extends ConsumerStatefulWidget {
     super.key,
     this.gridId,
     this.duplicateFromId,
+    this.initialGrid,
     this.isNew = false,
   });
 
   final String? gridId;
   final String? duplicateFromId;
+
+  /// Grille pré-remplie (catalogue métier ou génération IA), non persistée.
+  final ScoringGrid? initialGrid;
   final bool isNew;
 
   @override
@@ -34,6 +38,9 @@ class _ScoringGridEditorScreenState extends ConsumerState<ScoringGridEditorScree
   @override
   Widget build(BuildContext context) {
     if (widget.isNew) {
+      if (widget.initialGrid != null) {
+        return _buildEditor(widget.initialGrid!);
+      }
       if (widget.duplicateFromId != null) {
         final sourceAsync =
             ref.watch(scoringGridByIdProvider(widget.duplicateFromId!));
@@ -104,9 +111,8 @@ class _ScoringGridEditorScreenState extends ConsumerState<ScoringGridEditorScree
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Grille enregistrée — prospects re-scorés')),
         );
-        if (widget.isNew) {
-          context.go(RouteNames.scoringGridEdit(saved.id));
-        }
+        // Retour à la liste des grilles après validation.
+        context.go(RouteNames.scoring);
       }
     } finally {
       if (mounted) setState(() => _saving = false);

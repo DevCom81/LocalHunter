@@ -1,6 +1,5 @@
 import 'package:uuid/uuid.dart';
 
-import '../../../../core/constants/offer_types.dart';
 import '../../domain/entities/campaign.dart';
 import '../../domain/repositories/campaign_repository.dart';
 import '../../../prospects/data/demo/demo_data.dart';
@@ -17,7 +16,6 @@ class DemoCampaignRepository implements CampaignRepository {
         city: 'Albi',
         radiusKm: 15,
         targetCount: 20,
-        offerType: OfferType.easyRest,
         scoringGridId: DefaultScoringGrids.demoCampaignGridId,
         createdAt: DateTime.now(),
       ),
@@ -49,11 +47,15 @@ class DemoCampaignRepository implements CampaignRepository {
       city: input.city,
       radiusKm: input.radiusKm,
       targetCount: input.targetCount,
-      offerType: input.offerType,
       scoringGridId: input.scoringGridId ?? DefaultScoringGrids.defaultId,
       createdAt: DateTime.now(),
     );
     _campaigns = [..._campaigns, campaign];
     return campaign;
+  }
+
+  @override
+  Future<void> delete(String id) async {
+    _campaigns = _campaigns.where((c) => c.id != id).toList();
   }
 }

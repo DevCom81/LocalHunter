@@ -44,9 +44,17 @@ class SupabaseCampaignRepository implements CampaignRepository {
       'city': input.city,
       'radius_km': input.radiusKm,
       'target_count': input.targetCount,
-      'offer_type': input.offerType.dbValue,
       if (input.scoringGridId != null) 'scoring_grid_id': input.scoringGridId,
     }).select().single();
     return campaignFromDto(CampaignDto.fromJson(row));
+  }
+
+  @override
+  Future<void> delete(String id) async {
+    await _client
+        .from('campaigns')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', _userId);
   }
 }

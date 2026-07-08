@@ -21,8 +21,12 @@ class SiteScorer {
   int scorePoints(Prospect prospect) {
     if (!prospect.hasWebsite) return 28;
     final site = prospect.website!.toLowerCase();
+    // Site lent sur mobile (PageSpeed) : opportunité de refonte élevée.
+    final speed = prospect.pagespeedScore;
+    if (speed != null && speed < 50) return 26;
     if (site.contains('wix') || site.contains('wordpress')) return 22;
     if (!site.startsWith('https')) return 20;
+    if (speed != null && speed < 80) return 16;
     return 8;
   }
 

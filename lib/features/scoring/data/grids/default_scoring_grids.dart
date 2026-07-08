@@ -1,4 +1,3 @@
-import '../../../../core/constants/offer_types.dart';
 import '../../domain/entities/criterion_rule.dart';
 import '../../domain/entities/grid_config.dart';
 import '../../domain/entities/scoring_grid.dart';
@@ -15,6 +14,7 @@ class DefaultScoringGrids {
       id: defaultId,
       userId: userId,
       name: 'LocalHunter Default',
+      offerLabel: 'Site web',
       isTemplate: true,
       exclusionConfig: defaultExclusionConfig(),
       recommendationConfig: defaultRecommendationConfig(),
@@ -38,6 +38,7 @@ class DefaultScoringGrids {
     return base.copyWith(
       id: easyRestId,
       name: 'EasyRest Restauration',
+      offerLabel: 'EasyRest',
       criteria: base.criteria.map((c) {
         if (c.key == 'software_opportunity') return c.copyWith(maxPoints: 15);
         if (c.key == 'website_opportunity') return c.copyWith(maxPoints: 20);
@@ -73,14 +74,6 @@ class DefaultScoringGrids {
       if (match != null) return match;
     }
     return grids.firstOrNull;
-  }
-
-  static ScoringGrid? forOfferType(List<ScoringGrid> grids, OfferType offer) {
-    final name = offer == OfferType.easyRest
-        ? 'EasyRest Restauration'
-        : 'LocalHunter Default';
-    return grids.where((g) => g.name == name).firstOrNull ??
-        resolveDefault(grids);
   }
 
   static ScoringGrid blank({required String userId, String name = 'Nouvelle grille'}) {
@@ -119,6 +112,7 @@ class DefaultScoringGrids {
       userId: userId,
       name: name ?? '${source.name} (copie)',
       description: source.description,
+      offerLabel: source.offerLabel,
       isTemplate: asTemplate,
       exclusionConfig: source.exclusionConfig,
       recommendationConfig: source.recommendationConfig,

@@ -7,6 +7,7 @@ import '../../../../core/routing/route_names.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/offer_badge.dart';
 import '../providers/campaign_providers.dart';
+import '../widgets/delete_campaign_button.dart';
 import '../../../prospects/presentation/providers/prospect_providers.dart';
 import '../../../prospects/presentation/widgets/search_places_button.dart';
 import '../../../scoring/presentation/providers/scoring_providers.dart';
@@ -38,10 +39,14 @@ class CampaignDetailScreen extends ConsumerWidget {
         final count = prospectsAsync.valueOrNull?.length ?? 0;
         return AppScaffold(
           title: campaign.name,
+          actions: [
+            DeleteCampaignButton(campaign: campaign, prospectCount: count),
+          ],
           body: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              OfferBadge(offer: campaign.offerType),
+              // L'offre promue est portée par la grille de scoring liée.
+              OfferBadge(label: gridAsync.valueOrNull?.offerLabel ?? ''),
               const SizedBox(height: AppSpacing.md),
               Text('${campaign.sector} · ${campaign.city} · ${campaign.radiusKm} km'),
               const SizedBox(height: AppSpacing.lg),

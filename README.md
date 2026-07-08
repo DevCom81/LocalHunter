@@ -1,174 +1,77 @@
 # LocalHunter
 
-Application Flutter (web, desktop, mobile) pour la prospection locale B2B — identifier les entreprises locales les plus susceptibles de devenir clientes.
+**LocalHunter vous aide à trouver vos prochains clients parmi les entreprises locales.**
 
-## Stack
+Vous êtes artisan, freelance, agence web ou éditeur de logiciel ? LocalHunter recherche les entreprises d'une ville (restaurants, commerces, PME…), les évalue selon **vos** critères et vous indique lesquelles contacter en priorité — avec toutes leurs coordonnées et informations légales réunies sur une seule fiche.
 
-- **Flutter** + **Riverpod** + **go_router**
-- **Clean Architecture légère** (domain / data / presentation)
-- **Supabase** (PostgreSQL, Auth, Storage, Edge Functions)
-- Scoring local autonome + couche **LLMProvider** remplaçable
+## Ce que fait l'application
 
-## Prérequis
+- **Recherche automatique de prospects** : indiquez un secteur d'activité et une ville, LocalHunter trouve les entreprises correspondantes (jusqu'à 60 par recherche).
+- **Fiches complètes** : adresse, téléphone, email, site web, dirigeant, SIRET, n° TVA, date de création, chiffre d'affaires et résultat net quand ils sont publiés. Les établissements fermés sont automatiquement écartés.
+- **Scoring sur mesure** : chaque prospect reçoit une note sur 100 selon une grille de critères adaptée à votre métier et à l'offre que vous vendez. L'IA peut créer cette grille pour vous.
+- **CRM intégré** : suivez vos prospects, cochez ceux déjà contactés, filtrez par priorité, exportez en CSV ou Excel.
 
-- Flutter 3.41+ (`flutter doctor`)
-- Supabase CLI (optionnel pour backend local)
-- Compte Supabase Cloud (production)
+## Prise en main
 
-## Installation
+### 1. Créer un compte
 
-```bash
-git clone <repo>
-cd LocalHunter
-flutter pub get
-```
+Ouvrez l'application et touchez **Créer un compte** (email + mot de passe). Vous arrivez sur le tableau de bord.
 
-### Mode démo (sans Supabase)
+### 2. Créer votre grille de scoring
 
-```bash
-flutter run -d chrome
-# ou
-flutter run -d windows
-```
+La grille définit ce qui fait un « bon prospect » **pour vous**.
 
-L'app démarre avec 15 prospects restaurants Albi pré-chargés et le scoring actif.
+1. Onglet **Scoring** → **Nouvelle grille**.
+2. Trois possibilités :
+   - **Générer par IA** : décrivez votre métier et vos services (ex. « menuisier, pose de parquet pour PME ») — la grille est créée automatiquement ;
+   - **Catalogue métiers** : une vingtaine de grilles prêtes à l'emploi (assureur, cuisiniste, expert-comptable…) ;
+   - **Éditeur manuel** : composez vos propres critères.
+3. Renseignez l'**offre promue** (ce que vous vendez) : c'est elle qui sera recommandée sur les fiches prospects.
+4. Validez — vous revenez à la liste des grilles.
 
-### Mode Supabase
+### 3. Lancer une campagne
 
-1. Créer un projet sur [supabase.com](https://supabase.com)
-2. Appliquer les migrations (001 → 003) :
+1. Onglet **Campagnes** → bouton **+**.
+2. Renseignez : nom de la campagne, secteur recherché (ex. « restaurant »), ville, rayon, nombre de prospects souhaité (jusqu'à 60) et la grille de scoring à utiliser.
+3. Ouvrez la campagne et touchez **Recherche Prospects**.
 
-```bash
-supabase db push
-# ou exécuter supabase/migrations/*.sql dans le SQL Editor
-```
+La recherche prend une à deux minutes la première fois : l'application interroge Google, vérifie chaque entreprise au répertoire SIRENE, récupère dirigeant et données financières, et teste la vitesse des sites web. Les recherches suivantes sur la même zone sont quasi instantanées.
 
-La migration **003** ajoute les tables `scoring_grids` / `scoring_criteria` et la colonne `campaigns.scoring_grid_id`. À la première connexion, l'app provisionne automatiquement les grilles modèles (LocalHunter Default, EasyRest Restauration) pour l'utilisateur.
+### 4. Exploiter les résultats
 
-3. Créer un compte via **Créer un compte** dans l'app, ou via Supabase Dashboard → Authentication
+- Onglet **CRM** de la campagne : la liste des prospects, triés par score.
+- **Touchez un prospect** pour ouvrir sa fiche complète : coordonnées, responsable, SIRET, TVA, chiffre d'affaires, détail du score et offre recommandée.
+- **Cochez la case** d'un prospect une fois contacté : il apparaît grisé mais reste consultable.
+- **Filtres** : priorité haute uniquement, sans site web, email disponible…
+- **Export** : depuis la campagne, exportez la liste en CSV ou Excel.
+- **Analyse IA** (icône 🧠 sur la fiche) : arguments de vente et message d'approche personnalisés.
 
-4. Déployer l'Edge Function Google Places :
+### Importer vos propres listes
 
-```bash
-supabase secrets set GOOGLE_PLACES_API_KEY=votre_cle
-supabase functions deploy search-places
-```
+Vous avez déjà un fichier de prospects ? Depuis une campagne, utilisez **Import CSV** : les prospects sont notés avec votre grille comme s'ils venaient d'une recherche.
 
-La function vérifie le cache PostgreSQL (`places_search_cache`, TTL 30 jours) avant chaque appel Google.
+## Offres
 
-5. Configurer les clés (au choix) :
+| | **Gratuit** | **Premium** |
+|---|---|---|
+| Campagnes | 1 | Illimitées |
+| Grilles de scoring personnelles | 1 | Illimitées |
+| Prospects par campagne | 5 | Illimités |
 
-**Option A — fichier `.env` (recommandé en local)**
+## Questions fréquentes
 
-```bash
-cp .env.example .env
-# Éditer .env avec l’URL et la clé anon du projet Supabase
-flutter run -d chrome
-```
+**Certaines fiches n'ont ni SIRET ni chiffre d'affaires ?**
+Ces informations dépendent du répertoire officiel : si le nom commercial diffère de la raison sociale, la correspondance n'est pas toujours possible. Le chiffre d'affaires n'existe que pour les sociétés qui publient leurs comptes.
 
-**Option B — `--dart-define` (prioritaire sur `.env`, utile en CI)**
+**La recherche est longue ?**
+C'est normal lors de la première recherche sur une zone : chaque entreprise est vérifiée et chaque site web audité. Les recherches suivantes utilisent un cache et sont immédiates.
 
-```bash
-flutter run -d chrome \
-  --dart-define=SUPABASE_URL=https://xxx.supabase.co \
-  --dart-define=SUPABASE_ANON_KEY=your-anon-key
-```
+**Un prospect apparaît « Exclu » ?**
+Soit l'établissement est fermé au répertoire SIRENE, soit il correspond à un critère d'exclusion de votre grille (franchise, chaîne nationale…). Il reste visible pour contrôle.
 
-Priorité : `--dart-define` > `.env` > valeurs placeholder (mode démo).
+**D'où viennent les données ?**
+Exclusivement de sources officielles et publiques : Google Places, répertoire SIRENE (INSEE), Recherche d'entreprises (État français, bilans INPI) et PageSpeed Insights. Aucun scraping.
 
-Le fichier `.env` est ignoré par git ; ne jamais committer de secrets.
+## Confidentialité
 
-**Mobile (Android / iOS)**
-
-- Le `.env` est lu depuis les **assets Flutter** (déclaré dans `pubspec.yaml`). Il doit exister **avant** `flutter run` ou `flutter build` : modifiez `.env`, puis relancez un build complet (un hot reload ne recharge pas les assets).
-- Builds **release Android** : la permission `INTERNET` est déclarée dans `android/app/src/main/AndroidManifest.xml` (requise pour Supabase).
-- Pour distribuer sans `.env` (CI, stores) :
-
-```bash
-flutter build apk \
-  --dart-define=SUPABASE_URL=https://xxx.supabase.co \
-  --dart-define=SUPABASE_ANON_KEY=your-anon-key
-```
-
-## Structure projet
-
-```
-lib/
-├── core/           # config, theme, routing, widgets partagés
-├── features/
-│   ├── auth/
-│   ├── campaigns/
-│   ├── prospects/
-│   ├── scoring/
-│   ├── ai_analysis/
-│   └── export/
-supabase/
-├── migrations/     # schéma PostgreSQL + RLS
-assets/fixtures/    # CSV test Albi
-```
-
-Chaque feature : `domain/` · `data/` · `presentation/`
-
-**Règle stricte** : aucun fichier > 200 lignes.
-
-## Fonctionnalités MVP
-
-| Module | Statut |
-|---|---|
-| Navigation + écrans | ✅ |
-| Scoring local /100 | ✅ |
-| CRUD campagnes (démo + Supabase) | ✅ Phase 2 |
-| Import CSV + scoring + persistance scores | ✅ Phase 2 |
-| Export CSV/XLSX | ✅ Phase 2 |
-| Données démo Albi | ✅ |
-| Filtres CRM | ✅ |
-| Analyse IA (templates locaux) | ✅ |
-| Supabase schema + RLS | ✅ |
-| Auth Supabase (inscription + connexion) | ✅ Phase 3 |
-| Google Places via Edge Function | ✅ Phase 3 |
-| Cache recherches Places (30 j) | ✅ Phase 3 |
-| SIRENE | 🔲 Phase 4+ |
-| Edge Function IA | 🔲 Phase 7 |
-
-## Scoring LocalHunter
-
-| Composante | Poids |
-|---|---|
-| Décisionnaire accessible | /30 |
-| Opportunité site web | /30 |
-| Opportunité logiciel métier | /25 |
-| Santé commerciale | /15 |
-
-Sous-scores 0–5★ : SiteScore, SoftwareScore, EasyRestScore, AccessibilityScore, DigitalMaturityScore, FalsePositiveRisk.
-
-## EasyRest
-
-Offre ERP restauration propriétaire — scoring dédié pour bars, restaurants, snacks indépendants.
-
-## Enrichissement futur
-
-- **SIRENE** (INSEE) — données légales
-- **Google Places API** — notes, avis, coordonnées
-
-Stubs présents dans `features/prospects/data/adapters/`.
-
-## IA
-
-```dart
-// lib/core/network/service_providers.dart
-// Basculer NoopLLMProvider() pour désactiver
-llmProviderProvider → LocalTemplateLLMProvider (défaut)
-```
-
-## Import CSV test
-
-Fichier : `assets/fixtures/albi_restaurants.csv`
-
-## Contraintes légales
-
-- Pas de scraping non autorisé
-- Import manuel, CSV, APIs publiques officielles uniquement
-
-## License
-
-Propriétaire — usage interne.
+Vos campagnes, grilles et prospects sont privés et liés à votre compte. Aucune donnée n'est partagée entre utilisateurs.

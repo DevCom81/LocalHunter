@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/campaign.dart';
-import '../../../../core/widgets/offer_badge.dart';
 
 class CampaignCard extends StatelessWidget {
   const CampaignCard({super.key, required this.campaign, required this.onTap});
@@ -16,10 +15,9 @@ class CampaignCard extends StatelessWidget {
         onTap: onTap,
         title: Text(campaign.name),
         subtitle: Text(
-          '${campaign.city} · ${campaign.radiusKm} km · '
+          '${campaign.sector} · ${campaign.city} · ${campaign.radiusKm} km · '
           '${campaign.targetCount} prospects',
         ),
-        trailing: OfferBadge(offer: campaign.offerType),
       ),
     );
   }

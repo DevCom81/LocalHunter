@@ -1,8 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const CACHE_TTL_DAYS = 30;
+// Google Places (New) : 20 résultats max par page, 60 max au total
+// via pagination (nextPageToken).
+const MAX_RESULTS_LIMIT = 60;
+const PAGE_SIZE = 20;
 const PLACES_FIELD_MASK =
-  "places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.types,places.nationalPhoneNumber,places.websiteUri";
+  "nextPageToken,places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.types,places.nationalPhoneNumber,places.websiteUri";
 
 interface SearchRequest {
   city: string;
@@ -65,29 +69,46 @@ async function searchPlacesNewApi(
   textQuery: string,
   maxResults: number,
 ): Promise<PlaceProspect[]> {
-  const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Goog-Api-Key": apiKey,
-      "X-Goog-FieldMask": PLACES_FIELD_MASK,
-    },
-    body: JSON.stringify({
-      textQuery,
-      maxResultCount: maxResults,
-      languageCode: "fr",
-      regionCode: "FR",
-    }),
-  });
+  const collected: PlaceProspect[] = [];
+  let pageToken: string | undefined;
 
-  const data = await res.json();
-  if (!res.ok) {
-    const msg = data?.error?.message ?? JSON.stringify(data);
-    throw new Error(`Google Places (New): ${msg}`);
+  // Pagination : l'API renvoie 20 résultats max par appel, on suit
+  // nextPageToken jusqu'à maxResults (plafond Google : 60).
+  while (collected.length < maxResults) {
+    const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": apiKey,
+        "X-Goog-FieldMask": PLACES_FIELD_MASK,
+      },
+      // pageSize constant : l'API exige des paramètres identiques entre
+      // la requête initiale et les requêtes paginées (pageToken).
+      body: JSON.stringify({
+        textQuery,
+        pageSize: PAGE_SIZE,
+        ...(pageToken ? { pageToken } : {}),
+        languageCode: "fr",
+        regionCode: "FR",
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      const msg = data?.error?.message ?? JSON.stringify(data);
+      throw new Error(`Google Places (New): ${msg}`);
+    }
+
+    const places = (data.places as NewPlace[]) ?? [];
+    collected.push(
+      ...places.map((p) => mapPlace(p, textQuery.split(" ")[1] ?? "")),
+    );
+
+    pageToken = data.nextPageToken as string | undefined;
+    if (!pageToken || places.length === 0) break;
   }
 
-  const places = (data.places as NewPlace[]) ?? [];
-  return places.map((p) => mapPlace(p, textQuery.split(" ")[1] ?? ""));
+  return collected.slice(0, maxResults);
 }
 
 Deno.serve(async (req) => {
@@ -125,7 +146,10 @@ Deno.serve(async (req) => {
     const body: SearchRequest = await req.json();
     const city = body.city?.trim();
     const sector = body.sector?.trim() ?? "restaurant";
-    const maxResults = Math.min(body.maxResults ?? 20, 20);
+    // Le plafond de 20 clampait toute demande plus large, produisant le
+    // même cache_key qu'une recherche à 20 : le cache répondait à la place
+    // d'une vraie recherche élargie.
+    const maxResults = Math.min(body.maxResults ?? 20, MAX_RESULTS_LIMIT);
     if (!city) {
       return Response.json({ error: "city requis" }, { status: 400 });
     }

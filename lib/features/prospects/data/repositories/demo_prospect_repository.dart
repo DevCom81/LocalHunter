@@ -1,5 +1,6 @@
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/constants/prospect_status.dart';
 import '../../domain/entities/prospect.dart';
 import '../../domain/repositories/prospect_repository.dart';
 import '../../../scoring/domain/entities/prospect_score.dart';
@@ -30,6 +31,18 @@ class DemoProspectRepository implements ProspectRepository {
       }
     }
     return null;
+  }
+
+  @override
+  Future<void> updateStatus(String id, ProspectStatus status) async {
+    _byCampaign = _byCampaign.map(
+      (campaignId, list) => MapEntry(
+        campaignId,
+        list
+            .map((p) => p.id == id ? p.copyWith(status: status) : p)
+            .toList(),
+      ),
+    );
   }
 
   @override

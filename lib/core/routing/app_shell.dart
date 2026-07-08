@@ -79,6 +79,12 @@ class PremiumSideNav extends StatelessWidget {
             onTap: () => context.go(RouteNames.scoring),
           ),
           _SideNavItem(
+            icon: Icons.workspace_premium_outlined,
+            label: 'Abonnement',
+            selected: location.startsWith(RouteNames.subscription),
+            onTap: () => context.go(RouteNames.subscription),
+          ),
+          _SideNavItem(
             icon: Icons.settings_outlined,
             label: 'Paramètres',
             selected: location.startsWith(RouteNames.settings),
@@ -96,7 +102,8 @@ class PremiumMobileNav extends StatelessWidget {
   int _indexFor(String location) {
     if (location.startsWith(RouteNames.campaigns)) return 1;
     if (location.startsWith(RouteNames.scoring)) return 2;
-    if (location.startsWith(RouteNames.settings)) return 3;
+    if (location.startsWith(RouteNames.subscription)) return 3;
+    if (location.startsWith(RouteNames.settings)) return 4;
     return 0;
   }
 
@@ -111,7 +118,8 @@ class PremiumMobileNav extends StatelessWidget {
         final path = switch (index) {
           1 => RouteNames.campaigns,
           2 => RouteNames.scoring,
-          3 => RouteNames.settings,
+          3 => RouteNames.subscription,
+          4 => RouteNames.settings,
           _ => RouteNames.dashboard,
         };
         context.go(path);
@@ -131,6 +139,17 @@ class PremiumMobileNav extends StatelessWidget {
           icon: Icon(Icons.grid_view_outlined, color: AppColors.textOnDark),
           selectedIcon: Icon(Icons.grid_view, color: AppColors.navActive),
           label: 'Scoring',
+        ),
+        NavigationDestination(
+          icon: Icon(
+            Icons.workspace_premium_outlined,
+            color: AppColors.textOnDark,
+          ),
+          selectedIcon: Icon(
+            Icons.workspace_premium,
+            color: AppColors.navActive,
+          ),
+          label: 'Abonnement',
         ),
         NavigationDestination(
           icon: Icon(Icons.settings_outlined, color: AppColors.textOnDark),
