@@ -26,6 +26,10 @@ migrate_working_dir/
 # Environment secrets
 .env
 
+# Règles assistant IA + état d'avancement (local uniquement)
+CURSOR.md
+DEVELOPPEMENT.md
+
 # Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id
