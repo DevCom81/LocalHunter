@@ -16,17 +16,18 @@ abstract final class GridCreateMenu {
     // Attendre le tier réel : une lecture synchrone pendant le chargement
     // afficherait à tort le message freemium à un compte premium.
     final tier = await resolveTier(ref);
-    if (!tier.isPremium) {
+    final maxGrids = tier.limits.maxGrids;
+    if (maxGrids != null) {
       final gridCount =
           (await ref.read(scoringGridsProvider.future)).length;
-      if (gridCount >= FreemiumLimits.maxGrids) {
+      if (gridCount >= maxGrids) {
         if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             showCloseIcon: true,
             content: Text(
-              'Offre gratuite limitée à ${FreemiumLimits.maxGrids} grille de '
-              'scoring. ${FreemiumLimits.upgradeMessage}',
+              'Quota atteint (${maxGrids} grille${maxGrids > 1 ? 's' : ''} '
+              'de scoring max). ${PlanLimits.upgradeMessage}',
             ),
             action: SnackBarAction(
               label: 'Abonnement',

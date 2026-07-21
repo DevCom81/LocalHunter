@@ -26,6 +26,70 @@ async function sha256(input: string): Promise<string> {
     .join("");
 }
 
+interface TierLimits {
+  maxGrids: number | null;
+  maxAiPerMonth: number | null;
+}
+
+function limitsForTier(tier: string | undefined): TierLimits {
+  switch (tier) {
+    case "premium":
+      return { maxGrids: 2, maxAiPerMonth: 2 };
+    case "premium_plus":
+      return { maxGrids: 5, maxAiPerMonth: 5 };
+    case "pro":
+      return { maxGrids: null, maxAiPerMonth: null };
+    default:
+      return { maxGrids: 1, maxAiPerMonth: null };
+  }
+}
+
+function currentPeriodMonth(): string {
+  const now = new Date();
+  const y = now.getUTCFullYear();
+  const m = String(now.getUTCMonth() + 1).padStart(2, "0");
+  return `${y}-${m}-01`;
+}
+
+async function getAiUsage(
+  admin: ReturnType<typeof createClient>,
+  userId: string,
+): Promise<number> {
+  const { data } = await admin
+    .from("ai_generation_usage")
+    .select("used_count")
+    .eq("user_id", userId)
+    .eq("period_month", currentPeriodMonth())
+    .maybeSingle();
+  return data?.used_count ?? 0;
+}
+
+async function incrementAiUsage(
+  admin: ReturnType<typeof createClient>,
+  userId: string,
+): Promise<void> {
+  const period = currentPeriodMonth();
+  const { data } = await admin
+    .from("ai_generation_usage")
+    .select("used_count")
+    .eq("user_id", userId)
+    .eq("period_month", period)
+    .maybeSingle();
+  if (data) {
+    await admin
+      .from("ai_generation_usage")
+      .update({ used_count: data.used_count + 1 })
+      .eq("user_id", userId)
+      .eq("period_month", period);
+  } else {
+    await admin.from("ai_generation_usage").insert({
+      user_id: userId,
+      period_month: period,
+      used_count: 1,
+    });
+  }
+}
+
 async function callOpenRouter(
   apiKey: string,
   model: string,
@@ -106,24 +170,25 @@ Deno.serve(async (req) => {
 
     const admin = createClient(supabaseUrl, serviceKey);
 
-    // Quota freemium : 1 grille personnelle. Inutile de générer une grille
-    // que l'utilisateur ne pourra pas enregistrer (trigger SQL en backstop).
     const { data: profile } = await admin
       .from("profiles")
       .select("subscription_tier")
       .eq("id", userId)
       .maybeSingle();
-    if (profile?.subscription_tier !== "premium") {
+    const tier = profile?.subscription_tier ?? "freemium";
+    const limits = limitsForTier(tier);
+
+    if (limits.maxGrids !== null) {
       const { count } = await admin
         .from("scoring_grids")
         .select("id", { count: "exact", head: true })
         .eq("user_id", userId);
-      if ((count ?? 0) >= 1) {
+      if ((count ?? 0) >= limits.maxGrids) {
         return Response.json(
           {
             error:
-              "Offre gratuite limitée à 1 grille de scoring. " +
-              "Pour plus de grilles, abonnez-vous.",
+              "Quota grilles de scoring atteint pour votre offre. " +
+              "Pour plus de grilles, changez d'offre.",
           },
           { status: 403 },
         );
@@ -159,7 +224,25 @@ Deno.serve(async (req) => {
       return Response.json({ grid: cached.grid, fromCache: true });
     }
 
+    if (limits.maxAiPerMonth !== null) {
+      const used = await getAiUsage(admin, userId);
+      if (used >= limits.maxAiPerMonth) {
+        return Response.json(
+          {
+            error:
+              `Quota mensuel de génération IA atteint (${limits.maxAiPerMonth}/mois). ` +
+              "Pour plus de générations, changez d'offre.",
+          },
+          { status: 403 },
+        );
+      }
+    }
+
     const grid = await callOpenRouter(apiKey, model, business, productsServices);
+
+    if (limits.maxAiPerMonth !== null) {
+      await incrementAiUsage(admin, userId);
+    }
 
     await admin.from("grid_generation_cache").upsert(
       {

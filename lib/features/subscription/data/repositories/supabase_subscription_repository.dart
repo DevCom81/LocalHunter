@@ -23,5 +23,5 @@ class SupabaseSubscriptionRepository implements SubscriptionRepository {
 class DemoSubscriptionRepository implements SubscriptionRepository {
   @override
   Future<SubscriptionTier> getTier(String userId) async =>
-      SubscriptionTier.premium;
+      SubscriptionTier.pro;
 }

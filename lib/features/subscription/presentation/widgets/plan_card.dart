@@ -10,6 +10,7 @@ class PlanCard extends StatelessWidget {
     required this.features,
     required this.isCurrent,
     this.highlighted = false,
+    this.action,
   });
 
   final String title;
@@ -17,6 +18,7 @@ class PlanCard extends StatelessWidget {
   final List<String> features;
   final bool isCurrent;
   final bool highlighted;
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
@@ -65,6 +67,10 @@ class PlanCard extends StatelessWidget {
                 ),
               ),
             ),
+            if (action != null) ...[
+              const SizedBox(height: AppSpacing.md),
+              action!,
+            ],
           ],
         ),
       ),

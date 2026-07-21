@@ -52,11 +52,13 @@ Vous avez déjà un fichier de prospects ? Depuis une campagne, utilisez **Impor
 
 ## Offres
 
-| | **Gratuit** | **Premium** |
-|---|---|---|
-| Campagnes | 1 | Illimitées |
-| Grilles de scoring personnelles | 1 | Illimitées |
-| Prospects par campagne | 5 | Illimités |
+| | **Freemium** | **Premium** | **Premium Plus** | **Pro Plan** |
+|---|---|---|---|---|
+| Campagnes | 1 | 5 | 10 | Illimitées |
+| Grilles de scoring | 1 | 2 | 5 | Illimitées |
+| Générations IA / mois | — | 2 | 5 | Illimitées |
+| Prospects par campagne | 5 | 20 | 50 | Illimités |
+| Prix | Gratuit | 19,99 € / mois | 39,99 € / mois | 69,99 € / mois |
 
 ## Questions fréquentes
 

@@ -24,17 +24,18 @@ class CampaignsListScreen extends ConsumerWidget {
           // Attendre le tier réel avant tout message de quota (une lecture
           // pendant le chargement ferait passer un premium pour freemium).
           final tier = await resolveTier(ref);
-          final atLimit = !tier.isPremium &&
-              (campaignsAsync.valueOrNull?.length ?? 0) >=
-                  FreemiumLimits.maxCampaigns;
+          final maxCampaigns = tier.limits.maxCampaigns;
+          final atLimit = maxCampaigns != null &&
+              (campaignsAsync.valueOrNull?.length ?? 0) >= maxCampaigns;
           if (!context.mounted) return;
           if (atLimit) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 showCloseIcon: true,
                 content: Text(
-                  'Offre gratuite limitée à ${FreemiumLimits.maxCampaigns} '
-                  'campagne. ${FreemiumLimits.upgradeMessage}',
+                  'Quota atteint (${maxCampaigns} campagne'
+                  '${maxCampaigns! > 1 ? 's' : ''} max). '
+                  '${PlanLimits.upgradeMessage}',
                 ),
                 action: SnackBarAction(
                   label: 'Abonnement',

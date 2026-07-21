@@ -7,6 +7,7 @@ import '../../../scoring/presentation/providers/scoring_providers.dart';
 import '../../../scoring/data/services/prospect_scoring_service.dart';
 import '../../../subscription/domain/entities/subscription_tier.dart';
 import '../../../subscription/presentation/providers/prospect_quota_provider.dart';
+import '../../../subscription/presentation/providers/subscription_providers.dart';
 import '../../data/services/places_search_service.dart';
 import '../../data/services/prospect_enrichment_service.dart';
 import '../../domain/entities/places_search_result.dart';
@@ -42,13 +43,15 @@ class PlacesSearchNotifier extends AsyncNotifier<PlacesSearchResult?> {
           await ref.read(campaignRepositoryProvider).getById(campaignId);
       if (campaign == null) throw Exception('Campagne introuvable');
 
+      final tier = await ref.read(subscriptionTierProvider.future);
+      final maxProspects = tier.limits.maxProspectsPerCampaign;
       final remaining = await ref
           .read(remainingProspectSlotsProvider(campaignId).future);
       if (remaining != null && remaining <= 0) {
         throw Exception(
-          'Limite gratuite atteinte '
-          '(${FreemiumLimits.maxProspectsPerCampaign} prospects par '
-          'campagne). ${FreemiumLimits.upgradeMessage}',
+          'Quota prospects atteint '
+          '(${maxProspects ?? '?'} par campagne). '
+          '${PlanLimits.upgradeMessage}',
         );
       }
 

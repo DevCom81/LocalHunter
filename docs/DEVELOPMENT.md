@@ -36,7 +36,7 @@ L'app démarre avec 15 prospects restaurants Albi pré-chargés et le scoring ac
 ### Mode Supabase
 
 1. Créer un projet sur [supabase.com](https://supabase.com)
-2. Appliquer les migrations (001 → 009) :
+2. Appliquer les migrations (001 → 011) :
 
 ```bash
 supabase db push
@@ -49,13 +49,24 @@ La migration **004** ajoute les colonnes JSONB du scoring dynamique (`prospects.
 
 La migration **005** crée `grid_generation_cache` : cache **partagé entre utilisateurs** des grilles générées par IA (clé = métier normalisé). Accès uniquement via l'Edge Function (service role) — aucune policy RLS côté client.
 
-La migration **006** ajoute les abonnements : colonne `profiles.subscription_tier` (`freemium` par défaut, `premium`). Les quotas freemium (1 campagne, 1 grille personnelle, 5 prospects/campagne) sont appliqués par **triggers PostgreSQL** — non contournables côté client. Le tier n'est **pas modifiable par l'utilisateur** (privilège de colonne révoqué) : changement manuel uniquement, en attendant Google Play Billing :
+La migration **006** ajoute les abonnements : colonne `profiles.subscription_tier` (`freemium` par défaut). Les quotas sont appliqués par **triggers PostgreSQL** — non contournables côté client. Le tier n'est **pas modifiable par l'utilisateur** (privilège de colonne révoqué) : changement manuel uniquement, en attendant Google Play Billing :
 
 ```sql
 -- Passer un compte en premium (SQL Editor du Dashboard)
 UPDATE profiles SET subscription_tier = 'premium'
 WHERE email = 'utilisateur@exemple.fr';
 ```
+
+La migration **010** étend les paliers : `freemium`, `premium`, `premium_plus`, `pro` avec quotas différenciés (campagnes, grilles, prospects/campagne) et table `ai_generation_usage` pour le quota mensuel de générations IA (comptabilisé par l'Edge Function `generate-scoring-grid`, hors cache partagé). **Redéployer `generate-scoring-grid` après cette migration.**
+
+| Plan | Campagnes | Grilles | IA / mois | Prospects / campagne |
+|---|---:|---:|---:|---:|
+| Freemium | 1 | 1 | — | 5 |
+| Premium | 5 | 2 | 2 | 20 |
+| Premium Plus | 10 | 5 | 5 | 50 |
+| Pro | ∞ | ∞ | ∞ | ∞ |
+
+La migration **011** crée `play_subscriptions` (tokens Google Play, état, expiration). Le tier `profiles.subscription_tier` est mis à jour **uniquement** par les Edge Functions de facturation (service role), jamais par le client.
 
 La migration **007** remplace les 4 types d'offre codés en dur (site web,
 logiciel métier, EasyRest, CRM) par un **libellé d'offre libre porté par la
@@ -129,6 +140,43 @@ Résolution en 3 niveaux lors de la génération (écran Scoring → Nouvelle gr
 3. **OpenRouter** : génération IA, validée côté serveur (composants = 100 pts), puis mise en cache.
 
 La grille obtenue pré-remplit l'éditeur : rien n'est enregistré sans validation manuelle.
+
+4ter. Google Play Billing (abonnements Android) :
+
+**Play Console** — créer 3 abonnements dans le **même groupe d'abonnements** (changement de palier / remplacement géré par Google) :
+
+| Product ID | Tier Supabase | Prix |
+|---|---|---|
+| `localhunter_premium_monthly` | `premium` | 19,99 € / mois |
+| `localhunter_premium_plus_monthly` | `premium_plus` | 39,99 € / mois |
+| `localhunter_pro_monthly` | `pro` | 69,99 € / mois |
+
+Publier l'app sur une **piste de test interne** (AAB signé release) pour tester les achats.
+
+**Google Cloud** — activer **Google Play Android Developer API**, créer un compte de service, télécharger le JSON, inviter ce compte dans Play Console (Autorisations → Gérer les commandes et abonnements).
+
+**Supabase** :
+
+```bash
+# JSON complet du compte de service (une seule ligne ou multiligne)
+supabase secrets set GOOGLE_PLAY_SERVICE_ACCOUNT='{"type":"service_account",...}'
+
+supabase db push   # migration 011
+supabase functions deploy verify-play-purchase
+```
+
+**RTDN (renouvellements / annulations / expirations)** — optionnel mais recommandé en prod :
+
+```bash
+# Token secret dans l'URL du push Pub/Sub
+supabase secrets set PLAY_RTDN_TOKEN=un-token-long-aleatoire
+supabase functions deploy play-rtdn --no-verify-jwt
+```
+
+Configurer dans Play Console → Monétisation → Notifications en temps réel : endpoint Pub/Sub push vers  
+`https://<project-ref>.supabase.co/functions/v1/play-rtdn?token=<PLAY_RTDN_TOKEN>`
+
+Flux app : achat ou restauration → `verify-play-purchase` (API Google + mise à jour tier) → quotas SQL appliqués.
 
 5. Configurer les clés (au choix) :
 
