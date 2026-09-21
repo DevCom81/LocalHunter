@@ -10,11 +10,15 @@ import '../../features/prospects/domain/repositories/prospect_repository.dart';
 import '../../features/scoring/data/repositories/demo_scoring_grid_repository.dart';
 import '../../features/scoring/data/repositories/supabase_scoring_grid_repository.dart';
 import '../../features/scoring/domain/repositories/scoring_grid_repository.dart';
+import '../../features/commercial_profile/data/repositories/demo_commercial_profile_repository.dart';
+import '../../features/commercial_profile/data/repositories/supabase_commercial_profile_repository.dart';
+import '../../features/commercial_profile/domain/repositories/commercial_profile_repository.dart';
 import 'supabase_client_provider.dart';
 
 final _demoCampaignRepo = DemoCampaignRepository();
 final _demoProspectRepo = DemoProspectRepository();
 final _demoScoringGridRepo = DemoScoringGridRepository();
+final _demoCommercialProfileRepo = DemoCommercialProfileRepository();
 
 bool useSupabase(Ref ref) {
   if (!SupabaseConfig.isConfigured) return false;
@@ -44,4 +48,14 @@ final scoringGridRepositoryProvider = Provider<ScoringGridRepository>((ref) {
     return SupabaseScoringGridRepository(ref.watch(supabaseClientProvider)!);
   }
   return _demoScoringGridRepo;
+});
+
+final commercialProfileRepositoryProvider =
+    Provider<CommercialProfileRepository>((ref) {
+  if (useSupabase(ref)) {
+    return SupabaseCommercialProfileRepository(
+      ref.watch(supabaseClientProvider)!,
+    );
+  }
+  return _demoCommercialProfileRepo;
 });
