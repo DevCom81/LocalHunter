@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/widgets/app_scaffold.dart';
@@ -7,6 +8,10 @@ import '../../domain/entities/subscription_tier.dart';
 import '../providers/play_billing_providers.dart';
 import '../providers/subscription_providers.dart';
 import '../widgets/plan_card.dart';
+
+/// Listing Play Store — achat in-app uniquement dans l'app Android.
+const _playStoreListingUrl =
+    'https://play.google.com/store/apps/details?id=com.localhunter.localhunter';
 
 class SubscriptionScreen extends ConsumerWidget {
   const SubscriptionScreen({super.key});
@@ -74,8 +79,10 @@ class SubscriptionScreen extends ConsumerWidget {
                       ? 'Les abonnements sont gérés par Google Play. '
                           'Renouvellement automatique, résiliation depuis '
                           'Play Store → Paiements et abonnements.'
-                      : 'Les achats in-app sont disponibles sur Android. '
-                          'Sur cette plateforme, consultez votre offre actuelle.',
+                      : 'Les abonnements s’achètent dans l’app Android '
+                          '(Google Play), avec le même compte LocalHunter. '
+                          'Après l’achat, rechargez cette page pour voir '
+                          'votre nouvelle offre.',
                 ),
               ),
             ),
@@ -99,27 +106,53 @@ class SubscriptionScreen extends ConsumerWidget {
     required PlayBillingState billing,
   }) {
     if (!plan.isPaid) return null;
-    if (!billing.isAndroid || !billing.available) return null;
     if (plan == currentTier) return null;
 
-    final loading = billing.loading || billing.processing;
-    final label = plan.rank > currentTier.rank ? 'Passer à ${plan.label}' : 'Changer pour ${plan.label}';
+    if (billing.isAndroid && billing.available) {
+      final loading = billing.loading || billing.processing;
+      final label = plan.rank > currentTier.rank
+          ? 'Passer à ${plan.label}'
+          : 'Changer pour ${plan.label}';
 
+      return SizedBox(
+        width: double.infinity,
+        child: FilledButton(
+          onPressed: loading
+              ? null
+              : () =>
+                  ref.read(playBillingControllerProvider.notifier).purchase(plan),
+          child: loading
+              ? const SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(label),
+        ),
+      );
+    }
+
+    // Web / hors Android : redirection Play Store (pas de Play Billing in-browser).
     return SizedBox(
       width: double.infinity,
-      child: FilledButton(
-        onPressed: loading
-            ? null
-            : () => ref.read(playBillingControllerProvider.notifier).purchase(plan),
-        child: loading
-            ? const SizedBox(
-                height: 18,
-                width: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : Text(label),
+      child: FilledButton.icon(
+        onPressed: () => _openPlayStore(context),
+        icon: const Icon(Icons.android),
+        label: Text('S’abonner à ${plan.label} sur Android'),
       ),
     );
+  }
+
+  Future<void> _openPlayStore(BuildContext context) async {
+    final uri = Uri.parse(_playStoreListingUrl);
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Impossible d’ouvrir le Play Store.'),
+        ),
+      );
+    }
   }
 
   List<String> _featuresFor(SubscriptionTier tier) {
