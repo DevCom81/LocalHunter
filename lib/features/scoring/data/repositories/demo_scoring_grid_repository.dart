@@ -7,7 +7,6 @@ class DemoScoringGridRepository implements ScoringGridRepository {
   DemoScoringGridRepository() {
     _grids = {
       DefaultScoringGrids.defaultId: DefaultScoringGrids.localHunterDefault(),
-      DefaultScoringGrids.easyRestId: DefaultScoringGrids.easyRest(),
       DefaultScoringGrids.demoCampaignGridId: _demoCampaignGrid(),
     };
     _nextCustomId = 100;
@@ -18,12 +17,13 @@ class DemoScoringGridRepository implements ScoringGridRepository {
 
   static ScoringGrid _demoCampaignGrid() {
     return DefaultScoringGrids.duplicateFrom(
-      DefaultScoringGrids.easyRest(userId: DemoData.userId),
+      DefaultScoringGrids.localHunterDefault(userId: DemoData.userId),
       userId: DemoData.userId,
-      name: 'Restaurants Albi — scoring',
+      name: 'Grille démo — Albi',
     ).copyWith(
       id: DefaultScoringGrids.demoCampaignGridId,
       isTemplate: false,
+      offerLabel: '',
     );
   }
 

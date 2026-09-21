@@ -20,8 +20,8 @@ class SupabaseScoringGridRepository implements ScoringGridRepository {
 
   @override
   Future<ScoringGrid?> getById(String id) async {
-    // Ids sentinelles du mode démo ('grid-easyrest'…) : jamais en base,
-    // et un non-UUID ferait échouer la requête sur la colonne UUID.
+    // Ids sentinelles du mode démo ('grid-localhunter-default'…) : jamais
+    // en base ; un non-UUID ferait échouer la requête sur la colonne UUID.
     if (!_looksLikeUuid(id)) return null;
     final row = await _client
         .from('scoring_grids')
