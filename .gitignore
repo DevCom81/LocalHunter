@@ -50,3 +50,11 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Local AI tooling
+.agents/
+.claude/
+skills-lock.json
+
+# Firebase local cache
+.firebase/
