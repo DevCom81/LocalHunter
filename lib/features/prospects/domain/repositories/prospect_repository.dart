@@ -6,6 +6,15 @@ abstract class ProspectRepository {
   Future<List<Prospect>> getByCampaign(String campaignId);
   Future<Prospect?> getById(String id);
   Future<void> updateStatus(String id, ProspectStatus status);
+
+  /// Persiste exclusion / motif (ex. radiation BODACC C4.3).
+  Future<void> updateExclusion(
+    String id, {
+    required bool isExcluded,
+    String? exclusionReason,
+    ProspectStatus? status,
+  });
+
   Future<List<Prospect>> importProspects(
     String campaignId,
     List<Prospect> prospects,

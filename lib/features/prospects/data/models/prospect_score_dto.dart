@@ -1,18 +1,25 @@
-import '../../../../core/constants/priority_level.dart';
-import '../../../scoring/domain/entities/prospect_score.dart';
+import '../../../scoring/domain/entities/score_confidence.dart';
+import '../../../scoring/domain/entities/score_contribution.dart';
 
-/// Valeurs héritées de l'ancien enum offer_type (scores calculés avant la
-/// migration 007) : réaffichées avec un libellé lisible.
-const _legacyOfferLabels = {
-  'website': 'Site web',
-  'business_software': 'Logiciel métier',
-  'easy_rest': 'EasyRest',
-  'crm': 'CRM',
-};
+List<ScoreContribution> _parseContributions(dynamic raw) {
+  if (raw is! List) return const [];
+  return raw
+      .whereType<Map>()
+      .map((e) => ScoreContribution.fromJson(Map<String, dynamic>.from(e)))
+      .toList();
+}
 
-String? _displayOffer(String? raw) {
-  if (raw == null) return null;
-  return _legacyOfferLabels[raw] ?? raw;
+List<ScoreWarning> _parseWarnings(dynamic raw) {
+  if (raw is! List) return const [];
+  return raw
+      .whereType<Map>()
+      .map((e) => ScoreWarning.fromJson(Map<String, dynamic>.from(e)))
+      .toList();
+}
+
+List<String> _parseStringList(dynamic raw) {
+  if (raw is! List) return const [];
+  return raw.map((e) => e.toString()).toList();
 }
 
 class ProspectScoreDto {
@@ -34,6 +41,14 @@ class ProspectScoreDto {
     this.scoringVersion = 1,
     this.componentScores = const {},
     this.subScores = const {},
+    this.confidenceScore,
+    this.filledFields,
+    this.totalFields,
+    this.missingFields = const [],
+    this.contributions = const [],
+    this.scoreWarnings = const [],
+    this.fitScore,
+    this.opportunityScore,
   });
 
   factory ProspectScoreDto.fromJson(Map<String, dynamic> json) {
@@ -61,6 +76,14 @@ class ProspectScoreDto {
       subScores: rawSubs.map(
         (k, v) => MapEntry(k, (v as num).toDouble()),
       ),
+      confidenceScore: json['confidence_score'] as int?,
+      filledFields: json['filled_fields'] as int?,
+      totalFields: json['total_fields'] as int?,
+      missingFields: _parseStringList(json['missing_fields']),
+      contributions: _parseContributions(json['contributions']),
+      scoreWarnings: _parseWarnings(json['score_warnings']),
+      fitScore: json['fit_score'] as int?,
+      opportunityScore: json['opportunity_score'] as int?,
     );
   }
 
@@ -81,6 +104,14 @@ class ProspectScoreDto {
   final int scoringVersion;
   final Map<String, int> componentScores;
   final Map<String, double> subScores;
+  final int? confidenceScore;
+  final int? filledFields;
+  final int? totalFields;
+  final List<String> missingFields;
+  final List<ScoreContribution> contributions;
+  final List<ScoreWarning> scoreWarnings;
+  final int? fitScore;
+  final int? opportunityScore;
 
   Map<String, dynamic> toInsertJson() {
     return {
@@ -101,52 +132,14 @@ class ProspectScoreDto {
       'scoring_version': scoringVersion,
       'component_scores': componentScores,
       'sub_scores': subScores,
+      'confidence_score': confidenceScore,
+      'filled_fields': filledFields,
+      'total_fields': totalFields,
+      'missing_fields': missingFields,
+      'contributions': contributions.map((c) => c.toJson()).toList(),
+      'score_warnings': scoreWarnings.map((w) => w.toJson()).toList(),
+      'fit_score': fitScore,
+      'opportunity_score': opportunityScore,
     };
   }
-}
-
-ProspectScore prospectScoreFromDto(ProspectScoreDto dto, {String? id}) {
-  return ProspectScore(
-    id: id ?? dto.prospectId,
-    prospectId: dto.prospectId,
-    globalScore: dto.globalScore,
-    accessibilityScore: dto.accessibilityScore,
-    websiteOpportunity: dto.websiteOpportunity,
-    softwareOpportunity: dto.softwareOpportunity,
-    commercialHealth: dto.commercialHealth,
-    siteScore: dto.siteScore,
-    softwareScore: dto.softwareScore,
-    easyRestScore: dto.easyRestScore,
-    accessibilityStars: dto.accessibilityStars,
-    digitalMaturity: dto.digitalMaturity,
-    falsePositiveRisk: dto.falsePositiveRisk,
-    priority: PriorityLevel.fromDb(dto.priority),
-    recommendedOffer: _displayOffer(dto.recommendedOffer),
-    computedAt: DateTime.now(),
-    scoringVersion: dto.scoringVersion,
-    componentScores: dto.componentScores,
-    subScores: dto.subScores,
-  );
-}
-
-ProspectScoreDto prospectScoreToDto(ProspectScore score) {
-  return ProspectScoreDto(
-    prospectId: score.prospectId,
-    globalScore: score.globalScore,
-    accessibilityScore: score.accessibilityScore,
-    websiteOpportunity: score.websiteOpportunity,
-    softwareOpportunity: score.softwareOpportunity,
-    commercialHealth: score.commercialHealth,
-    siteScore: score.siteScore,
-    softwareScore: score.softwareScore,
-    easyRestScore: score.easyRestScore,
-    accessibilityStars: score.accessibilityStars,
-    digitalMaturity: score.digitalMaturity,
-    falsePositiveRisk: score.falsePositiveRisk,
-    priority: score.priority.dbValue,
-    recommendedOffer: score.recommendedOffer,
-    scoringVersion: score.scoringVersion,
-    componentScores: score.componentScores,
-    subScores: score.subScores,
-  );
 }

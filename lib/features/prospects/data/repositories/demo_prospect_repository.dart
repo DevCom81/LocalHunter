@@ -46,6 +46,31 @@ class DemoProspectRepository implements ProspectRepository {
   }
 
   @override
+  Future<void> updateExclusion(
+    String id, {
+    required bool isExcluded,
+    String? exclusionReason,
+    ProspectStatus? status,
+  }) async {
+    _byCampaign = _byCampaign.map(
+      (campaignId, list) => MapEntry(
+        campaignId,
+        list
+            .map(
+              (p) => p.id == id
+                  ? p.copyWith(
+                      isExcluded: isExcluded,
+                      exclusionReason: exclusionReason,
+                      status: status,
+                    )
+                  : p,
+            )
+            .toList(),
+      ),
+    );
+  }
+
+  @override
   Future<List<Prospect>> importProspects(
     String campaignId,
     List<Prospect> prospects,
