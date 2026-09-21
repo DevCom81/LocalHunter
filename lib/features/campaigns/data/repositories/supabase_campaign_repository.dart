@@ -37,16 +37,34 @@ class SupabaseCampaignRepository implements CampaignRepository {
 
   @override
   Future<Campaign> create(CreateCampaignInput input) async {
-    final row = await _client.from('campaigns').insert({
+    final profile = input.targetProfile;
+    final payload = <String, dynamic>{
       'user_id': _userId,
       'name': input.name,
       'sector': input.sector,
       'city': input.city,
       'radius_km': input.radiusKm,
       'target_count': input.targetCount,
+      'discovery_source': input.discoverySource.dbValue,
       if (input.scoringGridId != null) 'scoring_grid_id': input.scoringGridId,
-    }).select().single();
-    return campaignFromDto(CampaignDto.fromJson(row));
+      if (profile != null && !profile.isEmpty)
+        'target_profile': profile.toJson(),
+    };
+    try {
+      final row =
+          await _client.from('campaigns').insert(payload).select().single();
+      return campaignFromDto(CampaignDto.fromJson(row));
+    } on PostgrestException catch (e) {
+      // Colonne Phase 9 absente / cache PostgREST pas rechargé.
+      final details = '${e.message} ${e.details ?? ''} ${e.code ?? ''}';
+      if (details.contains('discovery_source')) {
+        throw Exception(
+          'Colonne discovery_source absente en base. '
+          'Exécute la migration 023 (SQL Editor) puis : NOTIFY pgrst, \'reload schema\';',
+        );
+      }
+      throw Exception(e.message);
+    }
   }
 
   @override

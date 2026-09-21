@@ -1,4 +1,6 @@
 import '../../domain/entities/campaign.dart';
+import '../../domain/entities/campaign_target_profile.dart';
+import '../../domain/entities/discovery_source.dart';
 
 class CampaignDto {
   CampaignDto({
@@ -12,9 +14,12 @@ class CampaignDto {
     required this.createdAt,
     this.updatedAt,
     this.scoringGridId,
+    this.targetProfile,
+    this.discoverySource = 'combined',
   });
 
   factory CampaignDto.fromJson(Map<String, dynamic> json) {
+    final rawProfile = json['target_profile'];
     return CampaignDto(
       id: json['id'] as String,
       userId: json['user_id'] as String,
@@ -28,6 +33,10 @@ class CampaignDto {
           ? DateTime.parse(json['updated_at'] as String)
           : null,
       scoringGridId: json['scoring_grid_id'] as String?,
+      targetProfile: rawProfile is Map<String, dynamic>
+          ? CampaignTargetProfile.fromJson(rawProfile)
+          : null,
+      discoverySource: json['discovery_source'] as String? ?? 'combined',
     );
   }
 
@@ -41,17 +50,8 @@ class CampaignDto {
   final DateTime createdAt;
   final DateTime? updatedAt;
   final String? scoringGridId;
-
-  Map<String, dynamic> toInsertJson(String userId) {
-    return {
-      'user_id': userId,
-      'name': name,
-      'sector': sector,
-      'city': city,
-      'radius_km': radiusKm,
-      'target_count': targetCount,
-    };
-  }
+  final CampaignTargetProfile? targetProfile;
+  final String discoverySource;
 }
 
 Campaign campaignFromDto(CampaignDto dto) {
@@ -66,5 +66,7 @@ Campaign campaignFromDto(CampaignDto dto) {
     scoringGridId: dto.scoringGridId,
     createdAt: dto.createdAt,
     updatedAt: dto.updatedAt,
+    targetProfile: dto.targetProfile ?? const CampaignTargetProfile(),
+    discoverySource: DiscoverySource.fromDb(dto.discoverySource),
   );
 }

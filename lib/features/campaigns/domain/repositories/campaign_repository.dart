@@ -1,4 +1,6 @@
 import '../entities/campaign.dart';
+import '../entities/campaign_target_profile.dart';
+import '../entities/discovery_source.dart';
 
 class CreateCampaignInput {
   const CreateCampaignInput({
@@ -8,6 +10,8 @@ class CreateCampaignInput {
     required this.radiusKm,
     required this.targetCount,
     this.scoringGridId,
+    this.targetProfile,
+    this.discoverySource = DiscoverySource.combined,
   });
 
   final String name;
@@ -16,6 +20,8 @@ class CreateCampaignInput {
   final int radiusKm;
   final int targetCount;
   final String? scoringGridId;
+  final CampaignTargetProfile? targetProfile;
+  final DiscoverySource discoverySource;
 }
 
 abstract class CampaignRepository {

@@ -29,6 +29,8 @@ class CampaignsNotifier extends AsyncNotifier<List<Campaign>> {
             radiusKm: input.radiusKm,
             targetCount: input.targetCount,
             scoringGridId: gridId,
+            targetProfile: input.targetProfile,
+            discoverySource: input.discoverySource,
           ),
         );
     state = AsyncData([created, ...?state.value]);

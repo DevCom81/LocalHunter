@@ -1,5 +1,9 @@
-/// Une campagne définit la cible de prospection (secteur recherché, ville,
-/// rayon, volume) ; l'offre promue est portée par la grille de scoring liée.
+import 'campaign_target_profile.dart';
+import 'discovery_source.dart';
+
+/// Campagne = géographie opérationnelle + volume + grille.
+/// L'offre promue reste sur la grille ; le [targetProfile] précise la cible
+/// commerciale (Phase 7, optionnel).
 class Campaign {
   const Campaign({
     required this.id,
@@ -12,6 +16,8 @@ class Campaign {
     required this.createdAt,
     this.scoringGridId,
     this.updatedAt,
+    this.targetProfile = const CampaignTargetProfile(),
+    this.discoverySource = DiscoverySource.combined,
   });
 
   final String id;
@@ -24,12 +30,16 @@ class Campaign {
   final String? scoringGridId;
   final DateTime createdAt;
   final DateTime? updatedAt;
+  final CampaignTargetProfile targetProfile;
+  final DiscoverySource discoverySource;
 
   Campaign copyWith({
     String? name,
     int? radiusKm,
     int? targetCount,
     String? scoringGridId,
+    CampaignTargetProfile? targetProfile,
+    DiscoverySource? discoverySource,
   }) {
     return Campaign(
       id: id,
@@ -42,6 +52,8 @@ class Campaign {
       scoringGridId: scoringGridId ?? this.scoringGridId,
       createdAt: createdAt,
       updatedAt: updatedAt,
+      targetProfile: targetProfile ?? this.targetProfile,
+      discoverySource: discoverySource ?? this.discoverySource,
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:uuid/uuid.dart';
 
 import '../../domain/entities/campaign.dart';
+import '../../domain/entities/campaign_target_profile.dart';
 import '../../domain/repositories/campaign_repository.dart';
 import '../../../prospects/data/demo/demo_data.dart';
 import '../../../scoring/data/grids/default_scoring_grids.dart';
@@ -11,13 +12,17 @@ class DemoCampaignRepository implements CampaignRepository {
       Campaign(
         id: DemoData.campaignId,
         userId: DemoData.userId,
-        name: 'Restaurants Albi — EasyRest',
-        sector: 'restauration',
+        name: 'Campagne démo — Albi',
+        sector: 'restaurant',
         city: 'Albi',
         radiusKm: 15,
         targetCount: 20,
         scoringGridId: DefaultScoringGrids.demoCampaignGridId,
         createdAt: DateTime.now(),
+        targetProfile: const CampaignTargetProfile(
+          offerSummary: '',
+          targetSummary: 'Commerces indépendants à Albi (données fictives)',
+        ),
       ),
     ];
   }
@@ -49,6 +54,8 @@ class DemoCampaignRepository implements CampaignRepository {
       targetCount: input.targetCount,
       scoringGridId: input.scoringGridId ?? DefaultScoringGrids.defaultId,
       createdAt: DateTime.now(),
+      targetProfile: input.targetProfile ?? const CampaignTargetProfile(),
+      discoverySource: input.discoverySource,
     );
     _campaigns = [..._campaigns, campaign];
     return campaign;
