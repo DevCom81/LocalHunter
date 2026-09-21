@@ -21,6 +21,16 @@ class SettingsScreen extends ConsumerWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.badge_outlined),
+            title: const Text('Profil commercial'),
+            subtitle: const Text(
+              'Offre, cible, signaux — validé avant génération IA',
+            ),
+            onTap: () => context.push(RouteNames.commercialProfile),
+          ),
+          const SizedBox(height: AppSpacing.lg),
           if (SupabaseConfig.isConfigured && user != null) ...[
             Text('Connecté : ${user.email ?? user.id}'),
             const SizedBox(height: AppSpacing.lg),

@@ -8,8 +8,11 @@ import '../../features/prospects/data/repositories/demo_prospect_repository.dart
 import '../../features/prospects/data/repositories/supabase_prospect_repository.dart';
 import '../../features/prospects/domain/repositories/prospect_repository.dart';
 import '../../features/scoring/data/repositories/demo_scoring_grid_repository.dart';
+import '../../features/scoring/data/repositories/demo_weight_suggestion_repository.dart';
 import '../../features/scoring/data/repositories/supabase_scoring_grid_repository.dart';
+import '../../features/scoring/data/repositories/supabase_weight_suggestion_repository.dart';
 import '../../features/scoring/domain/repositories/scoring_grid_repository.dart';
+import '../../features/scoring/domain/repositories/weight_suggestion_repository.dart';
 import '../../features/commercial_profile/data/repositories/demo_commercial_profile_repository.dart';
 import '../../features/commercial_profile/data/repositories/supabase_commercial_profile_repository.dart';
 import '../../features/commercial_profile/domain/repositories/commercial_profile_repository.dart';
@@ -19,6 +22,7 @@ final _demoCampaignRepo = DemoCampaignRepository();
 final _demoProspectRepo = DemoProspectRepository();
 final _demoScoringGridRepo = DemoScoringGridRepository();
 final _demoCommercialProfileRepo = DemoCommercialProfileRepository();
+final _demoWeightSuggestionRepo = DemoWeightSuggestionRepository();
 
 bool useSupabase(Ref ref) {
   if (!SupabaseConfig.isConfigured) return false;
@@ -58,4 +62,14 @@ final commercialProfileRepositoryProvider =
     );
   }
   return _demoCommercialProfileRepo;
+});
+
+final weightSuggestionRepositoryProvider =
+    Provider<WeightSuggestionRepository>((ref) {
+  if (useSupabase(ref)) {
+    return SupabaseWeightSuggestionRepository(
+      ref.watch(supabaseClientProvider)!,
+    );
+  }
+  return _demoWeightSuggestionRepo;
 });
