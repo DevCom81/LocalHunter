@@ -1,26 +1,32 @@
 import '../../domain/entities/criterion_rule.dart';
 import '../../domain/entities/grid_config.dart';
 import '../../domain/entities/scoring_grid.dart';
+import 'generated_grid_validator.dart';
 
 /// Convertit le JSON de grille produit par l'Edge Function
 /// `generate-scoring-grid` (déjà validé côté serveur) en [ScoringGrid].
 ///
-/// Format attendu :
-/// { name, description, criteria: [{key, label, kind, max_points, rule}],
-///   exclusion_config: {rules}, recommendation_config: {rules} }
+/// Phase 11 : re-valide chaque critère contre [MeasurableCriteriaCatalog]
+/// (ne fait pas confiance au seul prompt LLM).
 ScoringGrid parseGeneratedGrid(
   Map<String, dynamic> json, {
   required String userId,
 }) {
   final rawCriteria = json['criteria'] as List<dynamic>? ?? [];
-  final criteria = rawCriteria
+  final parsed = rawCriteria
       .whereType<Map<String, dynamic>>()
       .map(_parseCriterion)
       .whereType<ScoringCriterion>()
       .toList();
 
+  final filtered = const GeneratedGridValidator().filterCriteria(parsed);
+  final criteria = filtered.kept;
+
   if (criteria.isEmpty) {
-    throw const FormatException('Grille générée sans critère exploitable');
+    throw FormatException(
+      'Grille générée sans critère mesurable'
+      '${filtered.rejectedKeys.isEmpty ? '' : ' (rejetés: ${filtered.rejectedKeys.join(', ')})'}',
+    );
   }
 
   return ScoringGrid(

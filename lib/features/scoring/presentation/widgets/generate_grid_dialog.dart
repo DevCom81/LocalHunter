@@ -3,13 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/routing/route_names.dart';
+import '../../../commercial_profile/presentation/providers/commercial_profile_providers.dart';
+import '../../domain/entities/prospecting_profile.dart';
 import '../../domain/services/scoring_grid_generator.dart';
 import '../providers/grid_generation_providers.dart';
+import '../providers/pending_target_profile_provider.dart';
+import 'prospecting_profile_review_dialog.dart';
 
-/// Dialogue de génération d'une grille à partir du métier de l'utilisateur.
-/// Résolution : catalogue local → cache partagé → IA (OpenRouter).
-/// La grille obtenue pré-remplit l'éditeur ; rien n'est enregistré
-/// avant validation manuelle.
+/// Génération Phase 5 : métier → profil de prospection → validation → grille.
+/// Mode démo / sans remote : catalogue métiers (inchangé).
 class GenerateGridDialog extends ConsumerStatefulWidget {
   const GenerateGridDialog({super.key});
 
@@ -28,6 +30,7 @@ class _GenerateGridDialogState extends ConsumerState<GenerateGridDialog> {
   final _businessController = TextEditingController();
   final _servicesController = TextEditingController();
   bool _loading = false;
+  bool _prefilled = false;
 
   @override
   void dispose() {
@@ -38,19 +41,41 @@ class _GenerateGridDialogState extends ConsumerState<GenerateGridDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final profileAsync = ref.watch(commercialProfileProvider);
+    final profile = profileAsync.valueOrNull;
+    if (profile != null && !_prefilled) {
+      _prefilled = true;
+      if (profile.activity.isNotEmpty) {
+        _businessController.text = profile.activity;
+      }
+      if (profile.offer.isNotEmpty) {
+        _servicesController.text = profile.offer;
+      }
+    }
+
+    final hasRemote = ref.watch(gridGenerationRemoteProvider) != null;
+
     return AlertDialog(
-      title: const Text('Générer une grille'),
+      title: const Text('Nouvelle grille'),
       content: SizedBox(
         width: 420,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Text(
+              hasRemote
+                  ? 'LocalHunter proposera d\'abord un profil de prospection '
+                      'à valider, puis construira la grille.'
+                  : 'Mode démo : grille issue du catalogue métiers local.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
             TextField(
               controller: _businessController,
               autofocus: true,
               decoration: const InputDecoration(
                 labelText: 'Votre métier *',
-                hintText: 'Ex. : assureur, cuisiniste, expert-comptable…',
+                hintText: 'Ex. : frigoriste, flottes auto, expert-comptable…',
               ),
             ),
             const SizedBox(height: 12),
@@ -58,8 +83,8 @@ class _GenerateGridDialogState extends ConsumerState<GenerateGridDialog> {
               controller: _servicesController,
               maxLines: 3,
               decoration: const InputDecoration(
-                labelText: 'Vos produits et services (optionnel)',
-                hintText: 'Ex. : assurance multirisque pro, prévoyance TNS…',
+                labelText: 'Que leur proposez-vous ?',
+                hintText: 'Ex. : contrats de maintenance froid commercial…',
               ),
             ),
           ],
@@ -71,7 +96,7 @@ class _GenerateGridDialogState extends ConsumerState<GenerateGridDialog> {
           child: const Text('Annuler'),
         ),
         FilledButton.icon(
-          onPressed: _loading ? null : _generate,
+          onPressed: _loading ? null : _start,
           icon: _loading
               ? const SizedBox(
                   width: 16,
@@ -79,51 +104,93 @@ class _GenerateGridDialogState extends ConsumerState<GenerateGridDialog> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.auto_awesome, size: 18),
-          label: const Text('Générer'),
+          label: Text(hasRemote ? 'Comprendre ma cible' : 'Générer'),
         ),
       ],
     );
   }
 
-  Future<void> _generate() async {
+  Future<void> _start() async {
     final business = _businessController.text.trim();
     if (business.length < 3) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Indiquez votre métier (3 caractères min.)')),
+        const SnackBar(
+          content: Text('Indiquez votre métier (3 caractères min.)'),
+        ),
       );
       return;
     }
 
+    final products = _servicesController.text.trim();
+    final remote = ref.read(gridGenerationRemoteProvider);
+
     setState(() => _loading = true);
     try {
-      final result = await ref.read(gridGenerationProvider.notifier).generate(
-            business: business,
-            productsServices: _servicesController.text.trim(),
-          );
+      if (remote == null) {
+        await _generateGrid(business, products, prospecting: null);
+        return;
+      }
+
+      final proposed = await ref
+          .read(gridGenerationProvider.notifier)
+          .proposeProfile(business: business, productsServices: products);
       if (!mounted) return;
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_sourceMessage(result.source))),
+      setState(() => _loading = false);
+
+      final validated = await ProspectingProfileReviewDialog.show(
+        context,
+        proposed,
       );
-      context.go(RouteNames.scoringCreate, extra: result.grid);
+      if (validated == null || !mounted) return;
+
+      ref.read(pendingCampaignTargetProfileProvider.notifier).state =
+          validated.toCampaignTargetProfile();
+
+      setState(() => _loading = true);
+      await _generateGrid(business, products, prospecting: validated);
     } catch (e) {
       if (mounted) {
         setState(() => _loading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Génération impossible : $e')),
+          SnackBar(content: Text('Impossible : $e')),
         );
       }
     }
   }
 
+  Future<void> _generateGrid(
+    String business,
+    String products, {
+    required ProspectingProfile? prospecting,
+  }) async {
+    final commercial = await ref.read(commercialProfileProvider.future);
+    final result = await ref.read(gridGenerationProvider.notifier).generate(
+          business: business,
+          productsServices: products,
+          commercialProfile:
+              prospecting == null ? commercial.toEdgePayload() : null,
+          prospectingProfile: prospecting,
+        );
+    if (!mounted) return;
+    // Capturer router/messenger AVANT pop : après fermeture du dialogue,
+    // le context local est disposé et context.go est silencieusement perdu.
+    final router = GoRouter.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final msg = _sourceMessage(result.source);
+    final grid = result.grid;
+    Navigator.of(context).pop();
+    messenger.showSnackBar(SnackBar(content: Text(msg)));
+    router.go(RouteNames.scoringCreate, extra: grid);
+  }
+
   String _sourceMessage(GridGenerationSource source) {
     return switch (source) {
       GridGenerationSource.catalog =>
-        'Grille issue du catalogue métiers — vérifiez puis enregistrez',
+        'Grille catalogue — vérifiez puis enregistrez',
       GridGenerationSource.cache =>
-        'Grille issue du cache partagé — vérifiez puis enregistrez',
+        'Grille cache — vérifiez puis enregistrez',
       GridGenerationSource.ai =>
-        'Grille générée par IA — vérifiez puis enregistrez',
+        'Grille IA à partir de votre profil — vérifiez puis enregistrez',
     };
   }
 }

@@ -9,14 +9,48 @@ const KNOWN_FIELDS = [
   "email",
   "phone",
   "website",
+  "website_exists",
   "facebook_url",
   "instagram_url",
+  "linkedin_url",
+  "tiktok_url",
+  "youtube_url",
+  "x_url",
+  "facebook_detected",
+  "instagram_detected",
+  "linkedin_detected",
+  "tiktok_detected",
+  "youtube_detected",
+  "x_detected",
+  "social_presence_detected",
+  "social_network_count",
   "google_rating",
   "google_reviews",
+  "google_business_status",
   "category",
   "siren",
+  "siret",
   "naf_code",
+  "activity_code",
   "legal_form",
+  "pagespeed_score",
+  "company_age_years",
+  "company_created_recently",
+  "annual_revenue",
+  "revenue",
+  "annual_revenue_year",
+  "net_income",
+  "employee_count",
+  "establishment_count",
+  "bodacc_has_creation",
+  "bodacc_has_accounts_filing",
+  "bodacc_has_modification",
+  "bodacc_has_sale",
+  "bodacc_has_radiation",
+  "bodacc_has_liquidation",
+  "bodacc_has_collective_proceeding",
+  "bodacc_has_manager_change",
+  "bodacc_has_address_change",
 ];
 
 const RULE_TYPES = ["prospect_field", "boolean", "threshold", "keyword_match"];
@@ -30,7 +64,27 @@ export interface GeneratedGrid {
   recommendation_config: { rules: unknown[] };
 }
 
-export function buildPrompt(business: string, productsServices: string) {
+/** Profil commercial / prospection — injecté dans le prompt grille.
+ * Cache clé = hash(offer|target|métier) côté index.ts (Phase 5). */
+export interface CommercialProfileInput {
+  activity?: string;
+  offer?: string;
+  target_client_type?: string;
+  problem_solved?: string;
+  average_basket?: string;
+  service_area?: string;
+  client_size?: string;
+  positive_signals?: string;
+  negative_signals?: string;
+  exclusion_criteria?: string;
+  version?: number;
+}
+
+export function buildPrompt(
+  business: string,
+  productsServices: string,
+  profile?: CommercialProfileInput | null,
+) {
   const system = `Tu es un expert en prospection commerciale B2B locale.
 Tu génères des grilles de scoring pour évaluer des prospects (entreprises locales)
 selon leur probabilité de devenir clients d'un professionnel donné.
@@ -73,14 +127,53 @@ du professionnel : si un sous-score atteint le seuil, son offre est recommandée
 
 Contraintes STRICTES :
 - 4 à 6 critères "component" dont la somme des max_points fait EXACTEMENT 100.
-- 3 à 6 critères "sub_score" avec max_points = 5 (notation en étoiles).
-- "field" doit appartenir à : ${KNOWN_FIELDS.join(", ")}.
+- Critères "sub_score" : optionnels. Uniquement si l'offre le justifie
+  (ex. pagespeed_score pour une offre web). Sinon aucun sub_score.
+- "field" doit appartenir STRICTEMENT à : ${KNOWN_FIELDS.join(", ")}.
+  N'invente AUCUN autre champ.
+- INTERDIT dans key ET label (même avec un field autorisé) :
+  budget, croissance, intention d'achat, flotte automobile, "cherche un fournisseur",
+  "forte activité", solvabilité, capacité financière. Ces faits ne sont PAS mesurables.
+- annual_revenue = chiffre d'affaires PUBLIÉ (bilan), PAS un "budget".
+  Libellé autorisé ex. : "CA connu", "CA au-dessus de X".
+- company_created_recently / company_age_years / bodacc_has_creation =
+  ancienneté ou événement BODACC, PAS "entreprise en croissance".
+  Libellés autorisés ex. : "Création récente", "Ancienneté", "Dépôt de comptes BODACC".
+- establishment_count = nombre d'établissements connus, PAS une preuve de croissance.
+- keyword_match : uniquement mots du nom/catégorie métier (ex. pharmacie), jamais
+  des claims non vérifiables (budget, croissance…).
 - Les exclusions ciblent les franchises/chaînes nationales et les décisions non locales.
+- Si un profil commercial validé est fourni, aligne critères et exclusions dessus
+  UNIQUEMENT avec des champs de la liste autorisée et des libellés honnêtes.
+- N'introduis PAS de critères site web / PageSpeed / SEO / réseaux sociaux
+  sauf si le profil ou l'offre le justifie clairement.
+- Réseaux sociaux : utilise social_presence_detected / social_network_count /
+  *_detected — détection depuis le site analysé, PAS absence absolue.
+- Pour une offre B2B hors web (ex. flottes, labo, industriel) : privilégie
+  employee_count, establishment_count, naf_code, annual_revenue, net_income,
+  company_age_years, company_created_recently, contact, SIREN/SIRET, BODACC —
+  sans prétendre mesurer flotte ou croissance.
 - Libellés et description en français.`;
 
-  const user = `Mon métier : ${business}.
+  let user = `Mon métier : ${business}.
 ${productsServices ? `Mes produits et services : ${productsServices}.` : ""}
-Génère la grille de scoring pour identifier mes meilleurs prospects locaux.`;
+`;
+  if (profile) {
+    user += `
+Profil commercial VALIDÉ par l'utilisateur (à respecter) :
+- Offre : ${profile.offer ?? ""}
+- Client cible : ${profile.target_client_type ?? ""}
+- Problème résolu : ${profile.problem_solved ?? ""}
+- Panier moyen : ${profile.average_basket ?? ""}
+- Zone : ${profile.service_area ?? ""}
+- Taille client : ${profile.client_size ?? ""}
+- Signaux positifs : ${profile.positive_signals ?? ""}
+- Signaux négatifs : ${profile.negative_signals ?? ""}
+- Critères éliminatoires : ${profile.exclusion_criteria ?? ""}
+`;
+  }
+  user +=
+    `Génère la grille de scoring pour identifier mes meilleurs prospects locaux.`;
 
   return [
     { role: "system", content: system },
@@ -102,6 +195,24 @@ function slugKey(raw: string, index: number): string {
   return slug || `criterion_${index + 1}`;
 }
 
+function hasForbiddenClaim(key: string, label: string, match = ""): boolean {
+  const hay = `${key} ${label} ${match}`.toLowerCase();
+  const patterns = [
+    /budget/,
+    /croissance/,
+    /\bcroit\b/,
+    /intention/,
+    /flotte/,
+    /cherche\s+(un\s+)?fournisseur/,
+    /forte\s+activite/,
+    /potentiel\s+d.?achat/,
+    /solvable/,
+    /capacit[eé]\s+(financi|d.?achat|budg)/,
+    /marketing\s+d[eé]di/,
+  ];
+  return patterns.some((re) => re.test(hay));
+}
+
 // deno-lint-ignore no-explicit-any
 function validateRule(raw: any): Record<string, unknown> | null {
   const type = asString(raw?.type);
@@ -110,6 +221,7 @@ function validateRule(raw: any): Record<string, unknown> | null {
   if (type === "keyword_match") {
     const match = asString(raw.match);
     if (!match) return null;
+    if (hasForbiddenClaim("", "", match)) return null;
     return { type, match };
   }
 
@@ -139,6 +251,7 @@ function validateCriteria(raw: any[]): unknown[] {
     if (!rule) continue;
 
     let key = slugKey(asString(c?.key) || label, i);
+    if (hasForbiddenClaim(key, label)) continue;
     while (seen.has(key)) key = `${key}_2`;
     seen.add(key);
 

@@ -1,11 +1,35 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { buildPrompt, validateGrid, type GeneratedGrid } from "./grid_schema.ts";
+import { corsJson, corsPreflight } from "../_shared/cors.ts";
+import {
+  classifyError,
+  nowMs,
+  recordMetric,
+} from "../_shared/metrics.ts";
+import {
+  buildPrompt,
+  validateGrid,
+  type CommercialProfileInput,
+  type GeneratedGrid,
+} from "./grid_schema.ts";
+import {
+  buildProfilePrompt,
+  prospectingToCommercialInput,
+  validateProspectingProfile,
+  type ProspectingProfile,
+} from "./profile_schema.ts";
+import { openRouterJson } from "./openrouter_json.ts";
 
 const DEFAULT_MODEL = "mistralai/mistral-nemo";
 
 interface GenerateRequest {
   business: string;
   productsServices?: string;
+  /** Présent uniquement si le client a un profil validé. */
+  commercialProfile?: CommercialProfileInput;
+  /** Phase 5 : "profile" (proposer ICP) ou "grid" (défaut, rétrocompat). */
+  step?: "profile" | "grid";
+  /** Profil de prospection validé par l'utilisateur (étape grille). */
+  prospectingProfile?: ProspectingProfile;
 }
 
 /** Normalisation du métier : minuscules, sans accents, espaces réduits. */
@@ -90,60 +114,51 @@ async function incrementAiUsage(
   }
 }
 
-async function callOpenRouter(
+async function callOpenRouterGrid(
   apiKey: string,
   model: string,
   business: string,
   productsServices: string,
+  profile?: CommercialProfileInput | null,
 ): Promise<GeneratedGrid> {
-  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-      "HTTP-Referer": "https://localhunter.app",
-      "X-Title": "LocalHunter",
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.3,
-      response_format: { type: "json_object" },
-      messages: buildPrompt(business, productsServices),
-    }),
-  });
-
-  const data = await res.json();
-  if (!res.ok) {
-    const msg = data?.error?.message ?? JSON.stringify(data);
-    throw new Error(`OpenRouter: ${msg}`);
-  }
-
-  const content = data?.choices?.[0]?.message?.content;
-  if (!content) throw new Error("OpenRouter: réponse vide");
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(content);
-  } catch {
-    throw new Error("OpenRouter: la réponse n'est pas un JSON valide");
-  }
+  const parsed = await openRouterJson(
+    apiKey,
+    model,
+    buildPrompt(business, productsServices, profile),
+  );
   return validateGrid(parsed);
+}
+
+async function callOpenRouterProfile(
+  apiKey: string,
+  model: string,
+  business: string,
+  productsServices: string,
+): Promise<ProspectingProfile> {
+  const parsed = await openRouterJson(
+    apiKey,
+    model,
+    buildProfilePrompt(business, productsServices),
+  );
+  const profile = validateProspectingProfile(parsed);
+  if (!profile) {
+    throw new Error("Profil de prospection invalide (réponse IA)");
+  }
+  return profile;
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "authorization, content-type",
-      },
-    });
+    return corsPreflight();
   }
 
+  const started = nowMs();
+  // deno-lint-ignore no-explicit-any
+  let admin: any = null;
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return Response.json({ error: "Non authentifié" }, { status: 401 });
+      return corsJson({ error: "Non authentifié" }, { status: 401 });
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -151,7 +166,7 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get("OPENROUTER_API_KEY");
     const model = Deno.env.get("OPENROUTER_MODEL") ?? DEFAULT_MODEL;
     if (!apiKey) {
-      return Response.json(
+      return corsJson(
         { error: "OPENROUTER_API_KEY manquante" },
         { status: 500 },
       );
@@ -164,11 +179,11 @@ Deno.serve(async (req) => {
     );
     const { data: userData, error: userError } = await userClient.auth.getUser();
     if (userError || !userData.user) {
-      return Response.json({ error: "Token invalide" }, { status: 401 });
+      return corsJson({ error: "Token invalide" }, { status: 401 });
     }
     const userId = userData.user.id;
 
-    const admin = createClient(supabaseUrl, serviceKey);
+    admin = createClient(supabaseUrl, serviceKey);
 
     const { data: profile } = await admin
       .from("profiles")
@@ -184,7 +199,13 @@ Deno.serve(async (req) => {
         .select("id", { count: "exact", head: true })
         .eq("user_id", userId);
       if ((count ?? 0) >= limits.maxGrids) {
-        return Response.json(
+        await recordMetric(admin, {
+          source: "grid_gen",
+          status: "skip",
+          errorType: "quota",
+          durationMs: nowMs() - started,
+        });
+        return corsJson(
           {
             error:
               "Quota grilles de scoring atteint pour votre offre. " +
@@ -198,36 +219,103 @@ Deno.serve(async (req) => {
     const body: GenerateRequest = await req.json();
     const business = body.business?.trim();
     if (!business || business.length < 3 || business.length > 120) {
-      return Response.json(
+      return corsJson(
         { error: "business requis (3 à 120 caractères)" },
         { status: 400 },
       );
     }
     const productsServices = body.productsServices?.trim().slice(0, 1000) ?? "";
+    const step = body.step === "profile" ? "profile" : "grid";
 
-    // Cache partagé : clé = métier normalisé uniquement, pour que deux
-    // utilisateurs du même métier partagent la même grille générée.
+    // --- Étape 1 : proposer un profil de prospection (pas de cache grille) ---
+    if (step === "profile") {
+      if (limits.maxAiPerMonth !== null) {
+        const used = await getAiUsage(admin, userId);
+        if (used >= limits.maxAiPerMonth) {
+          return corsJson(
+            {
+              error:
+                `Quota mensuel de génération IA atteint (${limits.maxAiPerMonth}/mois). ` +
+                "Pour plus de générations, changez d'offre.",
+            },
+            { status: 403 },
+          );
+        }
+      }
+      const prospectingProfile = await callOpenRouterProfile(
+        apiKey,
+        model,
+        business,
+        productsServices,
+      );
+      // Le quota est consommé à la génération de grille (étape 2), pas ici.
+      await recordMetric(admin, {
+        source: "grid_gen_profile",
+        status: "success",
+        durationMs: nowMs() - started,
+      });
+      return corsJson({ profile: prospectingProfile });
+    }
+
+    // --- Étape 2 : grille (rétrocompat si step absent) ---------------------
+    const fromProspecting = body.prospectingProfile
+      ? validateProspectingProfile(body.prospectingProfile)
+      : null;
+    const commercialProfile: CommercialProfileInput | null =
+      fromProspecting != null
+        ? {
+          ...prospectingToCommercialInput(fromProspecting),
+          ...(body.commercialProfile ?? {}),
+        }
+        : (body.commercialProfile ?? null);
+
     const normalized = normalizeBusiness(business);
-    const cacheKey = await sha256(normalized);
+    // Cache : métier seul (historique) OU offer|target|métier (Phase 5).
+    let cacheKey: string;
+    let cacheBusinessLabel: string;
+    if (commercialProfile != null) {
+      const offer = normalizeBusiness(commercialProfile.offer ?? "");
+      const target = normalizeBusiness(
+        commercialProfile.target_client_type ?? "",
+      );
+      cacheBusinessLabel = `${offer}|${target}|${normalized}`;
+      cacheKey = await sha256(cacheBusinessLabel);
+    } else {
+      cacheBusinessLabel = normalized;
+      cacheKey = await sha256(normalized);
+    }
 
-    const { data: cached } = await admin
-      .from("grid_generation_cache")
-      .select("id, grid, hit_count")
-      .eq("cache_key", cacheKey)
-      .maybeSingle();
-
-    if (cached) {
-      await admin
+    {
+      const { data: cached } = await admin
         .from("grid_generation_cache")
-        .update({ hit_count: cached.hit_count + 1 })
-        .eq("id", cached.id);
-      return Response.json({ grid: cached.grid, fromCache: true });
+        .select("id, grid, hit_count")
+        .eq("cache_key", cacheKey)
+        .maybeSingle();
+
+      if (cached) {
+        await admin
+          .from("grid_generation_cache")
+          .update({ hit_count: cached.hit_count + 1 })
+          .eq("id", cached.id);
+        await recordMetric(admin, {
+          source: "grid_gen",
+          status: "cache_hit",
+          durationMs: nowMs() - started,
+        });
+        return corsJson({ grid: cached.grid, fromCache: true });
+      }
     }
 
     if (limits.maxAiPerMonth !== null) {
       const used = await getAiUsage(admin, userId);
       if (used >= limits.maxAiPerMonth) {
-        return Response.json(
+        await recordMetric(admin, {
+          source: "grid_gen",
+          status: "skip",
+          errorType: "quota",
+          durationMs: nowMs() - started,
+        });
+        return corsJson(
           {
             error:
               `Quota mensuel de génération IA atteint (${limits.maxAiPerMonth}/mois). ` +
@@ -238,7 +326,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    const grid = await callOpenRouter(apiKey, model, business, productsServices);
+    const grid = await callOpenRouterGrid(
+      apiKey,
+      model,
+      business,
+      productsServices,
+      commercialProfile,
+    );
 
     if (limits.maxAiPerMonth !== null) {
       await incrementAiUsage(admin, userId);
@@ -247,15 +341,28 @@ Deno.serve(async (req) => {
     await admin.from("grid_generation_cache").upsert(
       {
         cache_key: cacheKey,
-        business: normalized,
+        business: cacheBusinessLabel.slice(0, 200),
         grid,
         model,
       },
       { onConflict: "cache_key" },
     );
 
-    return Response.json({ grid, fromCache: false });
+    await recordMetric(admin, {
+      source: "grid_gen",
+      status: "success",
+      durationMs: nowMs() - started,
+    });
+    return corsJson({ grid, fromCache: false });
   } catch (e) {
-    return Response.json({ error: String(e) }, { status: 502 });
+    if (admin) {
+      await recordMetric(admin, {
+        source: "grid_gen",
+        status: "failure",
+        errorType: classifyError(e),
+        durationMs: nowMs() - started,
+      });
+    }
+    return corsJson({ error: String(e) }, { status: 502 });
   }
 });

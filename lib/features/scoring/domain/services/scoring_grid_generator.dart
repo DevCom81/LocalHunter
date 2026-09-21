@@ -1,3 +1,4 @@
+import '../entities/prospecting_profile.dart';
 import '../entities/scoring_grid.dart';
 
 /// Provenance de la grille générée.
@@ -26,5 +27,7 @@ abstract class ScoringGridGenerator {
     required String business,
     required String userId,
     String productsServices,
+    Map<String, dynamic>? commercialProfile,
+    ProspectingProfile? prospectingProfile,
   });
 }
