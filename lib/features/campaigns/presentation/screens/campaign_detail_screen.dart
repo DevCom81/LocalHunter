@@ -6,9 +6,12 @@ import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/routing/route_names.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/offer_badge.dart';
+import '../../domain/entities/discovery_source.dart';
 import '../providers/campaign_providers.dart';
+import '../widgets/campaign_target_profile_summary.dart';
 import '../widgets/delete_campaign_button.dart';
 import '../../../prospects/presentation/providers/prospect_providers.dart';
+import '../../../prospects/presentation/widgets/enrich_bodacc_button.dart';
 import '../../../prospects/presentation/widgets/search_places_button.dart';
 import '../../../scoring/presentation/providers/scoring_providers.dart';
 
@@ -48,7 +51,16 @@ class CampaignDetailScreen extends ConsumerWidget {
               // L'offre promue est portée par la grille de scoring liée.
               OfferBadge(label: gridAsync.valueOrNull?.offerLabel ?? ''),
               const SizedBox(height: AppSpacing.md),
-              Text('${campaign.sector} · ${campaign.city} · ${campaign.radiusKm} km'),
+              Text(
+                'Zone : ${campaign.city}'
+                '${campaign.discoverySource != DiscoverySource.sirene ? ' · ${campaign.radiusKm} km' : ''}'
+                '${campaign.sector.isNotEmpty ? ' · « ${campaign.sector} »' : ''}'
+                ' · ${campaign.discoverySource.label}',
+              ),
+              if (!campaign.targetProfile.isEmpty) ...[
+                const SizedBox(height: AppSpacing.md),
+                CampaignTargetProfileSummary(profile: campaign.targetProfile),
+              ],
               const SizedBox(height: AppSpacing.lg),
               Text('$count prospects', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: AppSpacing.md),
@@ -57,6 +69,7 @@ class CampaignDetailScreen extends ConsumerWidget {
                 runSpacing: AppSpacing.sm,
                 children: [
                   SearchPlacesButton(campaignId: campaignId),
+                  EnrichBodaccButton(campaignId: campaignId),
                   ActionChip(
                     avatar: const Icon(Icons.grid_view, size: 18),
                     label: const Text('Scoring'),

@@ -33,8 +33,8 @@ class CampaignsListScreen extends ConsumerWidget {
               SnackBar(
                 showCloseIcon: true,
                 content: Text(
-                  'Quota atteint (${maxCampaigns} campagne'
-                  '${maxCampaigns! > 1 ? 's' : ''} max). '
+                  'Quota atteint ($maxCampaigns campagne'
+                  '${maxCampaigns > 1 ? 's' : ''} max). '
                   '${PlanLimits.upgradeMessage}',
                 ),
                 action: SnackBarAction(
