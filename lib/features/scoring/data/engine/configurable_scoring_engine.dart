@@ -6,6 +6,7 @@ import '../../domain/entities/grid_config.dart';
 import '../../domain/entities/prospect_score.dart';
 import '../../domain/entities/scoring_grid.dart';
 import 'configurable_exclusion_checker.dart';
+import 'fit_opportunity_splitter.dart';
 import 'rule_based_scorer.dart';
 
 class ConfigurableScoringEngine {
@@ -17,6 +18,7 @@ class ConfigurableScoringEngine {
 
   final ScoringGrid _grid;
   final RuleBasedScorer _scorer;
+  final _fitOpp = const FitOpportunitySplitter();
   final _uuid = const Uuid();
 
   ProspectScore compute(Prospect prospect) {
@@ -36,7 +38,9 @@ class ConfigurableScoringEngine {
       subScores: subScoreMap,
     );
     final exclusion = exclusionChecker.check(prospect);
-    final isExcluded = prospect.isExcluded || exclusion.isExcluded;
+    final radiationExcluded = prospect.bodaccRadiationStatus == 'excluded';
+    final isExcluded =
+        prospect.isExcluded || exclusion.isExcluded || radiationExcluded;
 
     if (isExcluded) {
       subScoreMap.updateAll((_, v) => v);
@@ -111,6 +115,18 @@ class ConfigurableScoringEngine {
     required Map<String, double> subScoreMap,
     required String? recommended,
   }) {
+    final fit = _fitOpp.normalize(
+      grid: _grid,
+      componentScores: componentMap,
+      dimension: ScoreDimension.fit,
+      isExcluded: isExcluded,
+    );
+    final opportunity = _fitOpp.normalize(
+      grid: _grid,
+      componentScores: componentMap,
+      dimension: ScoreDimension.opportunity,
+      isExcluded: isExcluded,
+    );
     return ProspectScore(
       id: _uuid.v4(),
       prospectId: prospect.id,
@@ -129,9 +145,11 @@ class ConfigurableScoringEngine {
       priority: PriorityLevel.fromScore(global, isExcluded: isExcluded),
       recommendedOffer: recommended,
       computedAt: DateTime.now(),
-      scoringVersion: 3,
+      scoringVersion: 4,
       componentScores: componentMap,
       subScores: subScoreMap,
+      fitScore: fit,
+      opportunityScore: opportunity,
     );
   }
 }
