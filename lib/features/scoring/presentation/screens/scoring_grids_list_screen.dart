@@ -68,6 +68,10 @@ class _GridListTile extends ConsumerWidget {
             onSelected: (action) => _handleAction(context, ref, action),
             itemBuilder: (_) => const [
               PopupMenuItem(value: 'edit', child: Text('Modifier')),
+              PopupMenuItem(
+                value: 'suggestions',
+                child: Text('Suggestions CRM'),
+              ),
               PopupMenuItem(value: 'duplicate', child: Text('Dupliquer')),
               PopupMenuItem(value: 'delete', child: Text('Supprimer')),
             ],
@@ -87,6 +91,8 @@ class _GridListTile extends ConsumerWidget {
     switch (action) {
       case 'edit':
         context.go(RouteNames.scoringGridEdit(grid.id));
+      case 'suggestions':
+        context.push(RouteNames.scoringGridSuggestions(grid.id));
       case 'duplicate':
         context.go('${RouteNames.scoringCreate}?duplicate=${grid.id}');
       case 'delete':

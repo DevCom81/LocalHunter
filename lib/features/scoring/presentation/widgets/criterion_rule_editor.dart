@@ -4,6 +4,20 @@ import '../../../../core/constants/app_spacing.dart';
 import '../../domain/entities/criterion_rule.dart';
 import '../../data/engine/prospect_field_resolver.dart';
 
+/// Champs numériques proposés pour une règle [CriterionRuleType.threshold].
+const _thresholdKnownFields = <String>{
+  'google_rating',
+  'google_reviews',
+  'pagespeed_score',
+  'company_age_years',
+  'annual_revenue',
+  'net_income',
+  'annual_revenue_year',
+  'employee_count',
+  'establishment_count',
+  'social_network_count',
+};
+
 class CriterionRuleEditor extends StatelessWidget {
   const CriterionRuleEditor({
     super.key,
@@ -54,7 +68,10 @@ class CriterionRuleEditor extends StatelessWidget {
       case CriterionRuleType.prospectField:
         return [
           DropdownButtonFormField<String>(
-            initialValue: _fieldValue(rule.field),
+            initialValue: _dropdownFieldValue(
+              rule.field,
+              knownInDropdown: prospectFieldLabels.keys.toSet(),
+            ),
             decoration: const InputDecoration(
               labelText: 'Champ prospect',
               isDense: true,
@@ -93,7 +110,11 @@ class CriterionRuleEditor extends StatelessWidget {
       case CriterionRuleType.boolean:
         return [
           DropdownButtonFormField<String>(
-            initialValue: _fieldValue(rule.field),
+            initialValue: _dropdownFieldValue(
+              rule.field,
+              knownInDropdown: prospectFieldLabels.keys.toSet(),
+              allowCustom: false,
+            ),
             decoration: const InputDecoration(
               labelText: 'Champ',
               isDense: true,
@@ -132,17 +153,17 @@ class CriterionRuleEditor extends StatelessWidget {
       case CriterionRuleType.threshold:
         return [
           DropdownButtonFormField<String>(
-            initialValue: _fieldValue(rule.field),
+            initialValue: _dropdownFieldValue(
+              rule.field,
+              knownInDropdown: _thresholdKnownFields,
+            ),
             decoration: const InputDecoration(
               labelText: 'Champ numérique',
               isDense: true,
             ),
             items: [
               ...prospectFieldLabels.entries
-                  .where(
-                    (e) =>
-                        e.key == 'google_rating' || e.key == 'google_reviews',
-                  )
+                  .where((e) => _thresholdKnownFields.contains(e.key))
                   .map(
                     (e) => DropdownMenuItem(value: e.key, child: Text(e.value)),
                   ),
@@ -158,12 +179,13 @@ class CriterionRuleEditor extends StatelessWidget {
                   ),
           ),
           if (rule.field != null &&
-              !prospectFieldLabels.containsKey(rule.field))
+              !_thresholdKnownFields.contains(rule.field))
             TextFormField(
               initialValue: rule.field,
               enabled: !readOnly,
               decoration: const InputDecoration(
                 labelText: 'Clé champ personnalisé',
+                hintText: 'ex. ca_estime, surface',
                 isDense: true,
               ),
               onChanged: (v) => onChanged(rule.copyWith(field: v.trim())),
@@ -202,9 +224,16 @@ class CriterionRuleEditor extends StatelessWidget {
     }
   }
 
-  String? _fieldValue(String? field) {
+  /// Valeur DropdownButton : doit exister exactement une fois dans [items].
+  /// Si [field] n'est pas dans [knownInDropdown] → `__custom__` (si autorisé)
+  /// ou `null` (évite l'assertion Flutter).
+  String? _dropdownFieldValue(
+    String? field, {
+    required Set<String> knownInDropdown,
+    bool allowCustom = true,
+  }) {
     if (field == null) return null;
-    if (prospectFieldLabels.containsKey(field)) return field;
-    return '__custom__';
+    if (knownInDropdown.contains(field)) return field;
+    return allowCustom ? '__custom__' : null;
   }
 }

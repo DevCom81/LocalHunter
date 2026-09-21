@@ -95,6 +95,11 @@ class _ScoringGridEditorScreenState extends ConsumerState<ScoringGridEditorScree
       onDelete: () => _delete(grid),
       onDuplicate: () =>
           context.go('${RouteNames.scoringCreate}?duplicate=${grid.id}'),
+      onOpenSuggestions: widget.isNew || widget.gridId == null
+          ? null
+          : () => context.push(
+                RouteNames.scoringGridSuggestions(widget.gridId!),
+              ),
     );
   }
 

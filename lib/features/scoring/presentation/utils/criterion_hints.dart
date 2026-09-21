@@ -12,7 +12,7 @@ const criterionHints = <String, String>{
   'software_score':
       'Sous-score Software — multiplicateur sur les étoiles logiciel.',
   'easy_rest_score':
-      'Sous-score EasyRest — pertinent pour la restauration / bars.',
+      'Sous-score restauration / CHR (legacy) — bars, restos, snacks.',
   'accessibility_stars':
       'Sous-score accessibilité du décisionnaire (étoiles).',
   'digital_maturity':

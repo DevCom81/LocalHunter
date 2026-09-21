@@ -19,6 +19,7 @@ class ScoringGridEditorBody extends StatefulWidget {
     required this.onSave,
     this.onDelete,
     this.onDuplicate,
+    this.onOpenSuggestions,
   });
 
   final ScoringGrid grid;
@@ -26,6 +27,7 @@ class ScoringGridEditorBody extends StatefulWidget {
   final ValueChanged<ScoringGrid> onSave;
   final VoidCallback? onDelete;
   final VoidCallback? onDuplicate;
+  final VoidCallback? onOpenSuggestions;
 
   @override
   State<ScoringGridEditorBody> createState() => _ScoringGridEditorBodyState();
@@ -112,6 +114,14 @@ class _ScoringGridEditorBodyState extends State<ScoringGridEditorBody> {
       title: widget.grid.isTemplate
           ? '${widget.grid.name} (modèle)'
           : 'Éditer la grille',
+      actions: [
+        if (widget.onOpenSuggestions != null)
+          IconButton(
+            tooltip: 'Suggestions CRM',
+            onPressed: widget.onOpenSuggestions,
+            icon: const Icon(Icons.tune),
+          ),
+      ],
       body: ListView(
         children: [
           GridHeaderFields(
