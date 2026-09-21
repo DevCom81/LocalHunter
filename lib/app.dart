@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/config/app_config.dart';
 import 'core/config/supabase_config.dart';
 import 'core/routing/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'features/auth/data/remember_me_store.dart';
 
 class LocalHunterApp extends ConsumerWidget {
   const LocalHunterApp({super.key});
@@ -38,6 +38,11 @@ Future<void> bootstrap() async {
         url: SupabaseConfig.url,
         publishableKey: SupabaseConfig.publishableKey,
       );
+      // Remember-me décoché : ne pas restaurer la session au cold start.
+      final rememberMe = await RememberMeStore.loadRememberMe();
+      if (!rememberMe) {
+        await Supabase.instance.client.auth.signOut();
+      }
     } catch (e, stackTrace) {
       debugPrint('LocalHunter: échec init Supabase — $e\n$stackTrace');
     }

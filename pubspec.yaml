@@ -1,7 +1,7 @@
 name: localhunter
 description: LocalHunter - prospection locale B2B pour agences web et freelances.
 publish_to: 'none'
-version: 1.7.1+4
+version: 2.2.0+9
 
 environment:
   sdk: ^3.11.4
@@ -21,6 +21,10 @@ dependencies:
   path_provider: ^2.1.5
   flutter_dotenv: ^5.2.1
   in_app_purchase: ^3.2.3
+  shared_preferences: ^2.5.5
+  local_auth: ^3.0.2
+  flutter_secure_storage: ^10.3.1
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:
