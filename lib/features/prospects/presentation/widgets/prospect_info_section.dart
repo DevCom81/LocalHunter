@@ -20,11 +20,34 @@ class ProspectInfoSection extends StatelessWidget {
         InfoRow('Téléphone', p.phone),
         InfoRow('Email', p.email),
         InfoRow('Site web', p.website),
+        if (p.websiteReachable != null)
+          InfoRow(
+            'Site joignable',
+            p.websiteReachable! ? 'Oui' : 'Non',
+          ),
+        if (p.websiteHttps != null)
+          InfoRow('HTTPS', p.websiteHttps! ? 'Oui' : 'Non'),
+        if (p.websiteHttpStatus != null)
+          InfoRow('HTTP status', '${p.websiteHttpStatus}'),
+        if (p.websiteTitle != null && p.websiteTitle!.isNotEmpty)
+          InfoRow('Titre page', p.websiteTitle),
+        if (p.websiteHasViewport != null)
+          InfoRow(
+            'Viewport mobile',
+            p.websiteHasViewport! ? 'Présent' : 'Absent',
+          ),
         InfoRow('Responsable', p.managerName),
         if (p.siret != null)
           InfoRow('SIRET', p.siret)
         else if (p.siren != null)
           InfoRow('SIREN', p.siren),
+        if (p.sireneMatchScore != null)
+          InfoRow(
+            'Rapprochement SIRENE',
+            p.sireneMatchAmbiguous
+                ? '${p.sireneMatchScore}/100 (ambigu)'
+                : '${p.sireneMatchScore}/100',
+          ),
         if (p.vatNumber != null) InfoRow('N° TVA', p.vatNumber),
         if (p.creationDate != null)
           InfoRow('Création', formatDate(p.creationDate!)),
@@ -41,13 +64,23 @@ class ProspectInfoSection extends StatelessWidget {
         InfoRow('Catégorie', p.category),
         InfoRow('Note Google', p.googleRating?.toString()),
         InfoRow('Avis', '${p.googleReviews}'),
+        if (p.googleBusinessStatus != null)
+          InfoRow('Statut Google', _googleStatusLabel(p.googleBusinessStatus!)),
         if (p.pagespeedScore != null)
           InfoRow('PageSpeed mobile', '${p.pagespeedScore}/100'),
-        InfoRow('Statut', p.status.label),
         if (p.isExcluded) InfoRow('Exclusion', p.exclusionReason),
       ],
     );
   }
+}
+
+String _googleStatusLabel(String status) {
+  return switch (status) {
+    'OPERATIONAL' => 'Ouvert',
+    'CLOSED_TEMPORARILY' => 'Fermé temporairement',
+    'CLOSED_PERMANENTLY' => 'Fermé définitivement',
+    _ => status,
+  };
 }
 
 String formatDate(DateTime d) =>
