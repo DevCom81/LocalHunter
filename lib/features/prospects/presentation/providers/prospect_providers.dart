@@ -110,11 +110,7 @@ final filteredProspectsProvider =
       return false;
     }
     if (s.globalScore < filters.minScore) return false;
-    if (s.siteScore < filters.minSiteStars) return false;
-    if (s.softwareScore < filters.minSoftwareStars) return false;
     if (filters.excludeFranchises && p.isExcluded) return false;
-    if (filters.noWebsiteOnly && p.hasWebsite) return false;
-    if (filters.weakWebsiteOnly && s.siteScore < 3) return false;
     if (filters.emailAvailable && !p.hasEmail) return false;
     if (filters.phoneAvailable && !p.hasPhone) return false;
     return true;
@@ -144,9 +140,16 @@ Future<void> setProspectContacted(
 }) async {
   final status =
       contacted ? ProspectStatus.contacted : ProspectStatus.newProspect;
-  await ref
-      .read(prospectRepositoryProvider)
-      .updateStatus(prospect.id, status);
+  await setProspectStatus(ref, prospect, status);
+}
+
+/// Met à jour le statut CRM d'un prospect et invalide les providers liés.
+Future<void> setProspectStatus(
+  WidgetRef ref,
+  Prospect prospect,
+  ProspectStatus status,
+) async {
+  await ref.read(prospectRepositoryProvider).updateStatus(prospect.id, status);
   ref.invalidate(prospectsWithScoresProvider(prospect.campaignId));
   ref.invalidate(prospectByIdProvider(prospect.id));
 }

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_spacing.dart';
 import '../../../../core/network/demo_providers.dart';
 
+/// Chips CRM génériques — pas de filtres site / logiciel / SEO.
 class ProspectFiltersBar extends ConsumerWidget {
   const ProspectFiltersBar({super.key, required this.campaignId});
 
@@ -30,34 +31,10 @@ class ProspectFiltersBar extends ConsumerWidget {
               filters.copyWith(minScore: v ? 70 : 0),
         ),
         FilterChip(
-          label: const Text('Site ≥ 3★'),
-          selected: filters.minSiteStars >= 3,
-          onSelected: (v) => ref.read(prospectFiltersProvider.notifier).state =
-              filters.copyWith(minSiteStars: v ? 3 : 0),
-        ),
-        FilterChip(
-          label: const Text('Logiciel ≥ 3★'),
-          selected: filters.minSoftwareStars >= 3,
-          onSelected: (v) => ref.read(prospectFiltersProvider.notifier).state =
-              filters.copyWith(minSoftwareStars: v ? 3 : 0),
-        ),
-        FilterChip(
-          label: const Text('Exclure franchises'),
+          label: const Text('Exclure chaînes'),
           selected: filters.excludeFranchises,
           onSelected: (v) => ref.read(prospectFiltersProvider.notifier).state =
               filters.copyWith(excludeFranchises: v),
-        ),
-        FilterChip(
-          label: const Text('Sans site'),
-          selected: filters.noWebsiteOnly,
-          onSelected: (v) => ref.read(prospectFiltersProvider.notifier).state =
-              filters.copyWith(noWebsiteOnly: v),
-        ),
-        FilterChip(
-          label: const Text('Site faible'),
-          selected: filters.weakWebsiteOnly,
-          onSelected: (v) => ref.read(prospectFiltersProvider.notifier).state =
-              filters.copyWith(weakWebsiteOnly: v),
         ),
         FilterChip(
           label: const Text('Email dispo'),
