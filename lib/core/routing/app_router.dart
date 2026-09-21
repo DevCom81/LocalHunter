@@ -16,11 +16,14 @@ import '../../features/prospects/presentation/screens/import_csv_screen.dart';
 import '../../features/prospects/presentation/screens/prospect_detail_screen.dart';
 import '../../features/prospects/presentation/screens/crm_screen.dart';
 import '../../features/ai_analysis/presentation/screens/ai_analysis_screen.dart';
+import '../../features/scoring/presentation/screens/score_explanation_screen.dart';
 import '../../features/export/presentation/screens/export_screen.dart';
 import '../../features/scoring/domain/entities/scoring_grid.dart';
 import '../../features/scoring/presentation/screens/scoring_grids_list_screen.dart';
 import '../../features/scoring/presentation/screens/scoring_grid_editor_screen.dart';
+import '../../features/scoring/presentation/screens/weight_suggestions_screen.dart';
 import '../../features/subscription/presentation/screens/subscription_screen.dart';
+import '../../features/commercial_profile/presentation/screens/commercial_profile_screen.dart';
 import '../config/supabase_config.dart';
 import '../network/supabase_client_provider.dart';
 
@@ -113,6 +116,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 builder: (_, state) => ScoringGridEditorScreen(
                   gridId: state.pathParameters['gridId'],
                 ),
+                routes: [
+                  GoRoute(
+                    path: 'suggestions',
+                    builder: (_, state) => WeightSuggestionsScreen(
+                      gridId: state.pathParameters['gridId']!,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -126,6 +137,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 builder: (_, state) =>
                     AiAnalysisScreen(prospectId: state.pathParameters['id']!),
               ),
+              GoRoute(
+                path: 'score',
+                builder: (_, state) => ScoreExplanationScreen(
+                  prospectId: state.pathParameters['id']!,
+                ),
+              ),
             ],
           ),
           GoRoute(
@@ -135,6 +152,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: RouteNames.settings,
             builder: (_, _) => const SettingsScreen(),
+            routes: [
+              GoRoute(
+                path: 'profile',
+                builder: (_, _) => const CommercialProfileScreen(),
+              ),
+            ],
           ),
         ],
       ),
