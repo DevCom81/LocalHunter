@@ -28,7 +28,12 @@ class Prospect {
     this.annualRevenue,
     this.annualRevenueYear,
     this.netIncome,
+    this.employeeCount,
+    this.establishmentCount,
+    this.sireneMatchScore,
+    this.sireneMatchAmbiguous = false,
     this.googlePlaceId,
+    this.googleBusinessStatus,
     this.enrichedAt,
     this.enrichmentSource,
     this.createdAt,
@@ -68,7 +73,22 @@ class Prospect {
   final int? annualRevenueYear;
   final int? netIncome;
 
+  /// Effectif (borne basse tranche INSEE). Null = inconnu (≠ 0).
+  final int? employeeCount;
+
+  /// Nombre d'établissements (ouverts si dispo). Null = inconnu.
+  final int? establishmentCount;
+
+  /// Qualité du rapprochement SIRENE (0–100), null si non enrichi.
+  final int? sireneMatchScore;
+
+  /// Plusieurs candidats SIRENE proches : à vérifier manuellement.
+  final bool sireneMatchAmbiguous;
+
   final String? googlePlaceId;
+
+  /// Statut Google Places : OPERATIONAL, CLOSED_TEMPORARILY, CLOSED_PERMANENTLY.
+  final String? googleBusinessStatus;
   final DateTime? enrichedAt;
   final String? enrichmentSource;
   final DateTime? createdAt;

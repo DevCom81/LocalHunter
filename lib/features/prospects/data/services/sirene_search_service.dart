@@ -5,8 +5,9 @@ import '../../../../core/constants/prospect_status.dart';
 import '../../domain/entities/places_search_result.dart';
 import '../../domain/entities/prospect.dart';
 
-class PlacesSearchService {
-  PlacesSearchService(this._client);
+/// Client Edge `search-sirene` (discovery registre, Phase 9).
+class SireneSearchService {
+  SireneSearchService(this._client);
 
   final SupabaseClient _client;
   final _uuid = const Uuid();
@@ -19,7 +20,7 @@ class PlacesSearchService {
     int maxResults = 20,
   }) async {
     final response = await _client.functions.invoke(
-      'search-places',
+      'search-sirene',
       body: {
         'city': city,
         'sector': sector,
@@ -30,7 +31,7 @@ class PlacesSearchService {
 
     if (response.status != 200) {
       final err = response.data is Map ? response.data['error'] : response.data;
-      throw Exception(err ?? 'Erreur search-places (${response.status})');
+      throw Exception(err ?? 'Erreur search-sirene (${response.status})');
     }
 
     final data = response.data as Map<String, dynamic>;
@@ -43,15 +44,17 @@ class PlacesSearchService {
         name: m['name'] as String? ?? 'Sans nom',
         city: m['city'] as String?,
         address: m['address'] as String?,
-        phone: m['phone'] as String?,
-        website: m['website'] as String?,
-        googleRating: (m['google_rating'] as num?)?.toDouble(),
-        googleReviews: m['google_reviews'] as int? ?? 0,
         category: m['category'] as String?,
-        googlePlaceId: m['google_place_id'] as String?,
-        googleBusinessStatus: m['business_status'] as String?,
+        siren: m['siren'] as String?,
+        siret: m['siret'] as String?,
+        nafCode: m['naf_code'] as String?,
+        legalForm: m['legal_form'] as String?,
+        creationDate: _parseDate(m['creation_date']),
+        // Identité registre = match certain → BODACC manuel éligible.
+        sireneMatchScore: 100,
+        sireneMatchAmbiguous: false,
         status: ProspectStatus.newProspect,
-        enrichmentSource: 'google_places',
+        enrichmentSource: 'sirene',
         enrichedAt: DateTime.now(),
       );
     }).toList();
@@ -61,5 +64,10 @@ class PlacesSearchService {
       fromCache: data['fromCache'] as bool? ?? false,
       count: data['count'] as int? ?? prospects.length,
     );
+  }
+
+  static DateTime? _parseDate(dynamic raw) {
+    if (raw is! String || raw.isEmpty) return null;
+    return DateTime.tryParse(raw);
   }
 }
